@@ -71,11 +71,17 @@ function extractPrice(market: KalshiMarket): number {
   return rawPrice > 1 ? rawPrice / 100 : rawPrice;
 }
 
-export async function fetchKalshiWordPrices(): Promise<KalshiMarketPrice[]> {
+export interface FetchKalshiResult {
+  prices: KalshiMarketPrice[];
+  /** True when we successfully contacted the Kalshi API (even if 0 MrBeast markets were returned). */
+  connected: boolean;
+}
+
+export async function fetchKalshiWordPrices(): Promise<FetchKalshiResult> {
   if (!KALSHI_PRIVATE_KEY || !KALSHI_KEY_ID) {
     // Credentials not configured – treat as no markets available rather than
     // surfacing a confusing internal error to the end user.
-    return [];
+    return { prices: [], connected: false };
   }
 
   const path = "/trade-api/v2/markets";
@@ -132,5 +138,5 @@ export async function fetchKalshiWordPrices(): Promise<KalshiMarketPrice[]> {
     }
   }
 
-  return Array.from(wordPriceMap.values());
+  return { prices: Array.from(wordPriceMap.values()), connected: true };
 }

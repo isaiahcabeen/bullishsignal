@@ -28,6 +28,7 @@ export default function PredictPage() {
   const router = useRouter();
   const [kalshiPrices, setKalshiPrices] = useState<KalshiWordPrice[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [kalshiConnected, setKalshiConnected] = useState<boolean | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loadingKalshi, setLoadingKalshi] = useState(false);
   const [loadingRecs, setLoadingRecs] = useState(false);
@@ -79,6 +80,7 @@ export default function PredictPage() {
       const prices: KalshiWordPrice[] = data.prices ?? [];
       setKalshiPrices(prices);
       setLastUpdated(data.lastUpdated ?? null);
+      setKalshiConnected(data.connected ?? false);
 
       // Auto-calculate recommendations once prices are loaded
       await calculateRecommendations(prices);
@@ -136,7 +138,9 @@ export default function PredictPage() {
                   ? "bg-yellow-400 animate-pulse"
                   : kalshiError
                   ? "bg-red-400"
-                  : "bg-green-400"
+                  : kalshiConnected
+                  ? "bg-green-400"
+                  : "bg-orange-400"
               }`}
             />
             <span className="text-sm text-gray-300">
@@ -146,7 +150,9 @@ export default function PredictPage() {
                 ? "Calculating recommendations…"
                 : kalshiError
                 ? "Could not connect to Kalshi"
-                : `Live Kalshi data · ${kalshiPrices.length} markets loaded`}
+                : kalshiConnected
+                ? `Connected to Kalshi · ${kalshiPrices.length} MrBeast market${kalshiPrices.length !== 1 ? "s" : ""} found`
+                : "Kalshi credentials not configured"}
             </span>
           </div>
           {lastUpdated && !loadingKalshi && (
@@ -212,6 +218,12 @@ export default function PredictPage() {
         {/* No markets found */}
         {!loadingKalshi && !kalshiError && kalshiPrices.length === 0 && (
           <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 mb-6 text-center">
+            {kalshiConnected && (
+              <p className="text-xs text-green-400 mb-3 flex items-center justify-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                Connected to Kalshi API
+              </p>
+            )}
             <p className="text-gray-300 font-medium mb-1">
               No MrBeast markets on Kalshi yet
             </p>
