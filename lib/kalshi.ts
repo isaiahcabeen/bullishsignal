@@ -72,11 +72,10 @@ function extractPrice(market: KalshiMarket): number {
 }
 
 export async function fetchKalshiWordPrices(): Promise<KalshiMarketPrice[]> {
-  if (!KALSHI_PRIVATE_KEY) {
-    throw new Error("KALSHI_PRIVATE_KEY environment variable is not set");
-  }
-  if (!KALSHI_KEY_ID) {
-    throw new Error("KALSHI_API_KEY_ID environment variable is not set");
+  if (!KALSHI_PRIVATE_KEY || !KALSHI_KEY_ID) {
+    // Credentials not configured – treat as no markets available rather than
+    // surfacing a confusing internal error to the end user.
+    return [];
   }
 
   const path = "/trade-api/v2/markets";

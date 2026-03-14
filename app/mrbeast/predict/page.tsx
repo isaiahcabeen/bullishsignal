@@ -212,8 +212,12 @@ export default function PredictPage() {
         {/* No markets found */}
         {!loadingKalshi && !kalshiError && kalshiPrices.length === 0 && (
           <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 mb-6 text-center">
-            <p className="text-gray-400">
-              No MrBeast word markets found on Kalshi
+            <p className="text-gray-300 font-medium mb-1">
+              No MrBeast markets on Kalshi yet
+            </p>
+            <p className="text-sm text-gray-500">
+              Markets will appear here once Kalshi opens betting for the next
+              MrBeast video. Check back closer to the drop!
             </p>
           </div>
         )}
