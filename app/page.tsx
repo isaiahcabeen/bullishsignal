@@ -63,8 +63,8 @@ export default function Home() {
       <div className="flex justify-center px-4 mt-6">
         <input
           type="text"
-          placeholder="Search trading assistants..."
-          className="w-full max-w-xl px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Search events by title..."
+          className="w-full max-w-xl px-4 py-3 border border-gray-400 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
