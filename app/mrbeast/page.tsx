@@ -244,21 +244,21 @@ export default function MrBeastHome() {
                           <div className="space-y-1 text-xs">
 
                             <div className="flex justify-between">
-                              <span>Effective Sample Size:</span>
+                              <span className="text-gray-600">Effecctive Sample Size:</span>
                               <span className="text-green-400">
                                 {stat.metrics.effectiveSampleSize.toFixed(1)} videos
                               </span>
                             </div>
 
                             <div className="flex justify-between">
-                              <span>Recency Bias:</span>
+                              <span className="text-gray-600">Recency Bias:</span>
                               <span className="text-blue-400">
                                 {(stat.metrics.recentBias * 100).toFixed(0)}%
                               </span>
                             </div>
 
                             <div className="flex justify-between">
-                              <span>Entropy:</span>
+                              <span className="text-gray-600">Entropy:</span>
                               <span className="text-yellow-400">
                                 {stat.metrics.entropy.toFixed(2)}
                               </span>
