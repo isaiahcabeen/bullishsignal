@@ -150,7 +150,7 @@ export default function MrBeastHome() {
                   >
 
                     {/* Word Title */}
-                    <h3 className="text-xl font-bold text-white mb-4">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">
                       {stat.word}
                     </h3>
 
