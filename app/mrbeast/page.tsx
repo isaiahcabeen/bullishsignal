@@ -158,7 +158,7 @@ export default function MrBeastHome() {
                     <div className="mb-4">
 
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-gray-400">
+                        <span className="text-sm text-gray-600">
                           Probability
                         </span>
 
@@ -182,7 +182,7 @@ export default function MrBeastHome() {
                     <div className="mb-4">
 
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-gray-400">
+                        <span className="text-sm text-gray-600">
                           Confidence
                         </span>
 
@@ -208,21 +208,21 @@ export default function MrBeastHome() {
                     <div className="space-y-2 pt-4 border-t border-slate-700">
 
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-400">Frequency</span>
+                        <span className="text-xs text-gray-600">Frequency</span>
                         <span className="text-xs font-semibold text-purple-400">
                           {(stat.metrics.frequency * 100).toFixed(0)}%
                         </span>
                       </div>
 
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-400">Consistency</span>
+                        <span className="text-xs text-gray-600">Consistency</span>
                         <span className="text-xs font-semibold text-cyan-400">
                           {(stat.metrics.consistency * 100).toFixed(0)}%
                         </span>
                       </div>
 
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-400">Predictability</span>
+                        <span className="text-xs text-gray-600">Predictability</span>
                         <span className="text-xs font-semibold text-indigo-400">
                           {((1 - stat.metrics.entropy) * 100).toFixed(0)}%
                         </span>
@@ -237,7 +237,7 @@ export default function MrBeastHome() {
 
                         <div className="bg-white border border-gray-200 rounded p-3">
 
-                          <p className="text-xs text-gray-400 mb-2">
+                          <p className="text-xs text-gray-600 mb-2">
                             📊 Detailed Metrics
                           </p>
 
