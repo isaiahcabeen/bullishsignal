@@ -13,6 +13,9 @@ export default function Home() {
   const [imgError, setImgError] = useState(false);
   const [marketInfo, setMarketInfo] = useState<MarketInfo>(null);
   const [marketLive, setMarketLive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const MRBEAST_TITLE = "What will MrBeast say in his next YouTube video?";
 
   useEffect(() => {
     async function fetchMarket() {
@@ -51,14 +54,26 @@ export default function Home() {
         </p>
       </div>
 
+      {/* Search Bar */}
+      <div className="px-4 my-[25px]">
+        <input
+          type="text"
+          placeholder="Search events by title"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full max-w-2xl px-4 py-3 border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-400 shadow-sm transition-colors"
+        />
+      </div>
+
       {/* Main Content – left-aligned */}
-      <div className="px-4 py-6 flex flex-col gap-6 max-w-2xl">
+      <div className="px-4 pb-6 flex flex-col gap-6 max-w-2xl">
 
         {/* MrBeast Event Card */}
-        <div
-          onClick={() => router.push("/mrbeast")}
-          className="cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex min-h-[180px]"
-        >
+        {(MRBEAST_TITLE.toLowerCase().includes(searchQuery.toLowerCase()) || searchQuery === "") && (
+          <div
+            onClick={() => router.push("/mrbeast")}
+            className="cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex min-h-[180px]"
+          >
           {/* Left – MrBeast Image */}
           <div className="w-44 md:w-52 flex-shrink-0 bg-gray-800 relative overflow-hidden flex items-center justify-center">
             {!imgError ? (
@@ -80,7 +95,7 @@ export default function Home() {
           <div className="flex-1 p-5 flex flex-col justify-between">
             <div>
               <h2 className="text-base md:text-lg font-bold text-gray-900 leading-snug mb-1">
-                What will MrBeast say in his next YouTube video?
+                {MRBEAST_TITLE}
               </h2>
               <p className="text-xs text-gray-400 mb-3">Kalshi Prediction Market</p>
             </div>
@@ -134,7 +149,8 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        )}
 
       </div>
     </div>
