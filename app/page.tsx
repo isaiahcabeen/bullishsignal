@@ -2,64 +2,57 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
-import Image from "next/image";
 
-function useCountdown(targetDate: Date) {
-  const [timeLeft, setTimeLeft] = useState(() =>
-    Math.max(0, targetDate.getTime() - Date.now())
-  );
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(Math.max(0, targetDate.getTime() - Date.now()));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [targetDate]);
-
-  const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-  return { days, hours, minutes, seconds, isLive: timeLeft === 0 };
-}
+type MarketInfo = {
+  word: string;
+  price: number;
+} | null;
 
 export default function Home() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
   const [imgError, setImgError] = useState(false);
+  const [marketInfo, setMarketInfo] = useState<MarketInfo>(null);
+  const [marketLive, setMarketLive] = useState(false);
 
-  // Example market open date — update when actual Kalshi market is live
-  const marketOpenDate = new Date("2026-03-21T09:30:00-05:00");
-  const countdown = useCountdown(marketOpenDate);
+  useEffect(() => {
+    async function fetchMarket() {
+      try {
+        const res = await fetch("/api/kalshi");
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.prices) && data.prices.length > 0) {
+          const first = data.prices[0];
+          const word: unknown = first.word;
+          // price is normalized to 0-1 by the Kalshi lib
+          const price: unknown = first.price;
+          if (typeof word === "string" && typeof price === "number" && price >= 0 && price <= 1) {
+            setMarketInfo({ word, price });
+            setMarketLive(true);
+          }
+        }
+      } catch {
+        // market not open yet – defaults remain
+      }
+    }
+    fetchMarket();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Top Strip */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-10 px-4 text-center">
+      {/* Top Strip – thin decorative bar */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-[13px] px-4" />
+
+      {/* Title Section */}
+      <div className="px-4 pt-8 pb-4">
         <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
           Trading Assistants
         </h1>
-        <p className="text-gray-400 text-lg mt-3 max-w-md mx-auto">
+        <p className="text-gray-400 text-lg mt-3 max-w-md">
           Utilize these trading assistants to optimize your strategy and turn a profit!
         </p>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-2xl mx-auto px-4 py-10 flex flex-col gap-6">
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search events"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-50 shadow-sm transition"
-          />
-        </div>
+      {/* Main Content – left-aligned */}
+      <div className="px-4 py-6 flex flex-col gap-6 max-w-2xl">
 
         {/* MrBeast Event Card */}
         <div
@@ -67,13 +60,15 @@ export default function Home() {
           className="cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex min-h-[180px]"
         >
           {/* Left – MrBeast Image */}
-          <div className="w-44 md:w-52 flex-shrink-0 bg-gradient-to-br from-yellow-400 to-yellow-300 relative overflow-hidden flex items-center justify-center">
+          <div className="w-44 md:w-52 flex-shrink-0 bg-gray-800 relative overflow-hidden flex items-center justify-center">
             {!imgError ? (
-              <Image
-                src="https://yt3.googleusercontent.com/ytc/AIdro_mmFHW2qfKbHEQ_qfJJuqkBCJNLF2q_UNB_p0c8IG0=s400-c-k-c0x00ffffff-no-rj"
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src="https://github.com/user-attachments/assets/e2ad1291-8065-4357-911a-ba0a41ea5668"
                 alt="MrBeast"
-                fill
-                className="object-cover"
+                width={208}
+                height={180}
+                className="object-cover w-full h-full"
                 onError={() => setImgError(true)}
               />
             ) : (
@@ -95,17 +90,17 @@ export default function Home() {
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
                 Market Opens In
               </p>
-              {countdown.isLive ? (
+              {marketLive ? (
                 <span className="inline-block bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-sm">
                   🟢 Live Now
                 </span>
               ) : (
                 <div className="flex gap-2">
                   {[
-                    { label: "D", value: countdown.days },
-                    { label: "H", value: countdown.hours },
-                    { label: "M", value: countdown.minutes },
-                    { label: "S", value: countdown.seconds },
+                    { label: "D", value: 0 },
+                    { label: "H", value: 0 },
+                    { label: "M", value: 0 },
+                    { label: "S", value: 0 },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-slate-100 rounded-lg px-2 py-1 min-w-[40px] text-center">
                       <div className="text-base font-bold text-slate-900 leading-tight">
@@ -122,17 +117,20 @@ export default function Home() {
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               <div className="flex items-center gap-1">
                 <span className="text-gray-400">Volume:</span>
-                <span className="font-semibold text-gray-800">$12,450</span>
+                <span className="font-semibold text-gray-800">N/A</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-gray-400">Word ex.:</span>
-                <span className="font-semibold text-gray-800">&ldquo;Chandler&rdquo;</span>
+                <span className="text-gray-400">Word:</span>
+                <span className="font-semibold text-gray-800">
+                  {marketInfo ? `"${marketInfo.word}"` : "N/A"}
+                </span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-green-500 font-semibold">Yes 62¢</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-red-500 font-semibold">No 38¢</span>
+                <span className="text-green-500 font-semibold">
+                  {marketInfo
+                    ? `Yes ${(marketInfo.price * 100).toFixed(0)}¢`
+                    : "N/A"}
+                </span>
               </div>
             </div>
           </div>
