@@ -39,14 +39,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* Top Strip – thin decorative bar */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-[13px] px-4" />
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-[26px] px-4" />
 
       {/* Title Section */}
-      <div className="px-4 pt-8 pb-4">
-        <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+      <div className="px-4 pt-8 pb-4 text-center">
+        <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent pb-2">
           Trading Assistants
         </h1>
-        <p className="text-gray-400 text-lg mt-3 max-w-md">
+        <p className="text-gray-400 text-lg mt-3">
           Utilize these trading assistants to optimize your strategy and turn a profit!
         </p>
       </div>
