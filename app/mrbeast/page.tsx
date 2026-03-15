@@ -23,7 +23,6 @@ export default function MrBeastHome() {
   const [stats, setStats] = useState<WordStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
-  const [selectedWord, setSelectedWord] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -141,12 +140,7 @@ export default function MrBeastHome() {
 
                   <div
                     key={stat.word}
-                    className="group bg-white border border-gray-200 hover:border-green-500/50 rounded-lg p-6 transition-all duration-200 hover:bg-gray-50 hover:shadow-lg hover:shadow-green-500/10 cursor-pointer"
-                    onClick={() =>
-                      setSelectedWord(
-                        selectedWord === stat.word ? null : stat.word
-                      )
-                    }
+                    className="group bg-white border border-gray-200 hover:border-green-500/50 rounded-lg p-6 transition-all duration-200 hover:bg-gray-50 hover:shadow-lg hover:shadow-green-500/10"
                   >
 
                     {/* Word Title */}
@@ -203,74 +197,6 @@ export default function MrBeastHome() {
                       </p>
 
                     </div>
-
-                    {/* Metrics Summary */}
-                    <div className="space-y-2 pt-4 border-t border-slate-700">
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">Frequency</span>
-                        <span className="text-xs font-semibold text-purple-400">
-                          {(stat.metrics.frequency * 100).toFixed(0)}%
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">Consistency</span>
-                        <span className="text-xs font-semibold text-cyan-400">
-                          {(stat.metrics.consistency * 100).toFixed(0)}%
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">Predictability</span>
-                        <span className="text-xs font-semibold text-indigo-400">
-                          {((1 - stat.metrics.entropy) * 100).toFixed(0)}%
-                        </span>
-                      </div>
-
-                    </div>
-
-                    {/* Expanded Metrics */}
-                    {selectedWord === stat.word && (
-
-                      <div className="mt-4 pt-4 border-t border-slate-700 space-y-3">
-
-                        <div className="bg-white border border-gray-200 rounded p-3">
-
-                          <p className="text-xs text-gray-600 mb-2">
-                            📊 Detailed Metrics
-                          </p>
-
-                          <div className="space-y-1 text-xs">
-
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Effecctive Sample Size:</span>
-                              <span className="text-green-400">
-                                {stat.metrics.effectiveSampleSize.toFixed(1)} videos
-                              </span>
-                            </div>
-
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Recency Bias:</span>
-                              <span className="text-blue-400">
-                                {(stat.metrics.recentBias * 100).toFixed(0)}%
-                              </span>
-                            </div>
-
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Entropy:</span>
-                              <span className="text-yellow-400">
-                                {stat.metrics.entropy.toFixed(2)}
-                              </span>
-                            </div>
-
-                          </div>
-
-                        </div>
-
-                      </div>
-
-                    )}
 
                   </div>
                 );
