@@ -42,7 +42,7 @@ export default function Home() {
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 py-[26px] px-4" />
 
       {/* Title Section */}
-      <div className="px-4 pt-8 pb-4 text-center">
+      <div className="px-4 pt-12 pb-4 text-center">
         <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent pb-2">
           Trading Assistants
         </h1>
