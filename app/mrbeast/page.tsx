@@ -122,7 +122,7 @@ export default function MrBeastHome() {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-400"></div>
             </div>
           ) : filteredStats.length === 0 ? (
-            <div className="text-center py-12 bg-slate-800/30 rounded-lg border border-slate-700">
+            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
               <p className="text-gray-400 text-lg">
                 {filter
                   ? "No words match your search"
@@ -141,7 +141,7 @@ export default function MrBeastHome() {
 
                   <div
                     key={stat.word}
-                    className="group bg-slate-800/50 border border-slate-700 hover:border-green-500/50 rounded-lg p-6 transition-all duration-200 hover:bg-slate-800/80 hover:shadow-lg hover:shadow-green-500/10 cursor-pointer"
+                    className="group bg-white border border-gray-200 hover:border-green-500/50 rounded-lg p-6 transition-all duration-200 hover:bg-gray-50 hover:shadow-lg hover:shadow-green-500/10 cursor-pointer"
                     onClick={() =>
                       setSelectedWord(
                         selectedWord === stat.word ? null : stat.word
@@ -235,7 +235,7 @@ export default function MrBeastHome() {
 
                       <div className="mt-4 pt-4 border-t border-slate-700 space-y-3">
 
-                        <div className="bg-slate-900/50 rounded p-3">
+                        <div className="bg-white border border-gray-200 rounded p-3">
 
                           <p className="text-xs text-gray-400 mb-2">
                             📊 Detailed Metrics
