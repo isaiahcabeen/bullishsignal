@@ -65,11 +65,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* Top Strip */}
-      <div className="bg-white py-[35px] px-4 flex justify-center items-center">
+      <div className="bg-white py-3 px-4 flex justify-center items-center border-b border-gray-100">
         <img
           src={BULLISH_SIGNALS_LOGO_URL}
           alt="Bullish Signals"
-          className="h-20 w-auto"
+          className="h-12 w-auto"
         />
       </div>
 

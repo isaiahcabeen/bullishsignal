@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Home, TrendingUp } from "lucide-react";
+import { Home } from "lucide-react";
 import { getConfidenceInterpretation } from "@/lib/probability";
 import { BULLISH_SIGNALS_LOGO_URL } from "@/lib/constants";
 
@@ -67,26 +67,24 @@ export default function MrBeastHome() {
 
   return (
     <div className="min-h-screen bg-white">
-      
-      {/* Logo */}
-      <div className="bg-white flex justify-center items-center py-4 border-b border-gray-100">
-        <img
-          src={BULLISH_SIGNALS_LOGO_URL}
-          alt="Bullish Signals"
-          className="h-20 w-auto"
-        />
-      </div>
 
       {/* Header */}
       <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center relative">
 
             <div className="flex items-center gap-3">
               <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors" aria-label="Home">
                 <Home className="w-6 h-6" />
               </Link>
-              <TrendingUp className="w-8 h-8 text-green-400" />
+            </div>
+
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
+              <img
+                src={BULLISH_SIGNALS_LOGO_URL}
+                alt="Bullish Signals"
+                className="h-10 w-auto"
+              />
               <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
                 MrBeast Trading Assistant
               </h1>
