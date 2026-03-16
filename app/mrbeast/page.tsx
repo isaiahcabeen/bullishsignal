@@ -59,9 +59,9 @@ export default function MrBeastHome() {
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.85) return "from-green-500 to-emerald-600";
-    if (confidence >= 0.70) return "from-green-500 to-teal-600";
+    if (confidence >= 0.7) return "from-green-500 to-teal-600";
     if (confidence >= 0.55) return "from-yellow-500 to-amber-600";
-    if (confidence >= 0.40) return "from-orange-500 to-red-600";
+    if (confidence >= 0.4) return "from-orange-500 to-red-600";
     return "from-red-500 to-rose-600";
   };
 
@@ -73,20 +73,29 @@ export default function MrBeastHome() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center relative">
 
+            {/* Left Side */}
             <div className="flex items-center gap-3">
-              <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors" aria-label="Home">
+              <Link
+                href="/"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+                aria-label="Home"
+              >
                 <Home className="w-6 h-6" />
               </Link>
+
               <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
                 MrBeast Trading Assistant
               </h1>
-              <img
-                src={BULLISH_SIGNALS_LOGO_URL}
-                alt="Bullish Signals"
-                className="h-10 w-auto"
-              />
             </div>
 
+            {/* CENTERED LOGO */}
+            <img
+              src={BULLISH_SIGNALS_LOGO_URL}
+              alt="Bullish Signals"
+              className="h-10 w-auto absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            />
+
+            {/* Right Side */}
             <nav className="flex gap-6">
               <Link
                 href="/mrbeast/predict"
@@ -116,7 +125,6 @@ export default function MrBeastHome() {
 
         {/* Stats Grid */}
         <section>
-
           <h2 className="text-2xl font-bold mb-6 text-black">
             Word Probabilities
           </h2>
@@ -134,21 +142,18 @@ export default function MrBeastHome() {
               </p>
             </div>
           ) : (
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
               {filteredStats.map((stat) => {
 
                 const confidenceInterp = getConfidenceInterpretation(stat.confidence);
 
                 return (
-
                   <div
                     key={stat.word}
                     className="group bg-white border border-gray-200 hover:border-green-500/50 rounded-lg p-6 transition-all duration-200 hover:bg-gray-50 hover:shadow-lg hover:shadow-green-500/10"
                   >
 
-                    {/* Word Title */}
+                    {/* Word */}
                     <h3 className="text-xl font-bold text-gray-900 mb-4">
                       {stat.word}
                     </h3>
