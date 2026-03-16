@@ -61,7 +61,7 @@ body {
     rgba(255, 255, 255, 0.12) 65%,
     transparent 100%
   );
-  animation: wave-flash 20s ease-in-out infinite;
+  animation: wave-flash 10s ease-in-out infinite;
   pointer-events: none;
 }
 

@@ -143,49 +143,47 @@ export default function PredictPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <div className="bg-sky-400 px-4 pt-10 pb-10">
-        <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold text-white drop-shadow pb-2">
-            Price Analysis
-          </h1>
-          <p className="text-white text-lg mt-3">
-            Real-time Kalshi market data with AI-powered trade recommendations
-          </p>
+      {/* Page Title */}
+      <div className="border-b border-gray-100 px-4 pt-10 pb-8 text-center bg-white">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 pb-2">
+          Price Analysis
+        </h1>
+        <p className="text-gray-500 text-lg mt-3 max-w-2xl mx-auto">
+          Real-time Kalshi market data with AI-powered trade recommendations
+        </p>
 
-          {/* Live status pill */}
-          <div className="flex justify-center mt-6">
-            <div
-              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-5 py-2"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <span
-                aria-hidden="true"
-                className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  isLoading
-                    ? "bg-yellow-200 animate-pulse"
-                    : kalshiError
-                    ? "bg-red-200"
-                    : kalshiPrices.length === 0
-                    ? "bg-white/60"
-                    : "bg-green-200"
-                }`}
-              />
-              <span className="text-white text-sm font-medium">
-                {loadingKalshi
-                  ? "Fetching live prices from Kalshi…"
-                  : loadingRecs
-                  ? "Calculating recommendations…"
+        {/* Live status pill */}
+        <div className="flex justify-center mt-5">
+          <div
+            className="inline-flex items-center gap-2 bg-gray-100 rounded-full px-5 py-2"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <span
+              aria-hidden="true"
+              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                isLoading
+                  ? "bg-yellow-400 animate-pulse"
                   : kalshiError
-                  ? "Could not connect to Kalshi"
+                  ? "bg-red-400"
                   : kalshiPrices.length === 0
-                  ? "Waiting for market to open"
-                  : lastUpdated
-                  ? `Live · Updated ${new Date(lastUpdated).toLocaleTimeString()}`
-                  : "Live Kalshi Data"}
-              </span>
-            </div>
+                  ? "bg-gray-400"
+                  : "bg-green-400"
+              }`}
+            />
+            <span className="text-gray-600 text-sm font-medium">
+              {loadingKalshi
+                ? "Fetching live prices from Kalshi…"
+                : loadingRecs
+                ? "Calculating recommendations…"
+                : kalshiError
+                ? "Could not connect to Kalshi"
+                : kalshiPrices.length === 0
+                ? "Waiting for market to open"
+                : lastUpdated
+                ? `Live · Updated ${new Date(lastUpdated).toLocaleTimeString()}`
+                : "Live Kalshi Data"}
+            </span>
           </div>
         </div>
       </div>
