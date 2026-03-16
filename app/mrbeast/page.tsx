@@ -93,7 +93,7 @@ export default function MrBeastHome() {
               src={BULLISH_SIGNALS_LOGO_URL}
               alt="Bullish Signals"
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-              style={{ width: "97px", height: "53px"}}
+              style={{ width: "97px", height: "56px"}}
             />
 
             {/* Right Side */}

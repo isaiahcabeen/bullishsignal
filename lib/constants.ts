@@ -1,2 +1,2 @@
 export const BULLISH_SIGNALS_LOGO_URL =
-  "https://github.com/user-attachments/assets/5453b913-a49a-4a30-89ae-98cc41f935bd";
+  "https://github.com/user-attachments/assets/e36fae21-e567-4ea8-aba7-030a7fee811c";

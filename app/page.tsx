@@ -69,7 +69,7 @@ export default function Home() {
         <img
           src={BULLISH_SIGNALS_LOGO_URL}
           alt="Bullish Signals"
-          style={{ width: "97px", height: "53px" }}
+          style={{ width: "97px", height: "56px" }}
         />
       </div>
 
