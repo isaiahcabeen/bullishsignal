@@ -77,17 +77,14 @@ export default function MrBeastHome() {
               <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors" aria-label="Home">
                 <Home className="w-6 h-6" />
               </Link>
-            </div>
-
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+                MrBeast Trading Assistant
+              </h1>
               <img
                 src={BULLISH_SIGNALS_LOGO_URL}
                 alt="Bullish Signals"
                 className="h-10 w-auto"
               />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-                MrBeast Trading Assistant
-              </h1>
             </div>
 
             <nav className="flex gap-6">
