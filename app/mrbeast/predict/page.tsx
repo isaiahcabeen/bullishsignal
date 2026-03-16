@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw, Clock } from "lucide-react";
 import { getRiskColor } from "@/lib/probability";
 import { BULLISH_SIGNALS_LOGO_URL } from "@/lib/constants";
 
@@ -106,75 +106,120 @@ export default function PredictPage() {
   const isLoading = loadingKalshi || loadingRecs;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
-      {/* Logo */}
-      <div className="flex justify-center items-center py-4 mb-2">
-        <img
-          src={BULLISH_SIGNALS_LOGO_URL}
-          alt="Bullish Signals"
-          className="h-20 w-auto"
-        />
-      </div>
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => router.push("/mrbeast")}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Dashboard
-          </button>
-          <h1 className="text-3xl font-bold text-white">Price Analysis</h1>
-          <button
-            onClick={loadKalshiData}
-            disabled={isLoading}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
-            title="Refresh Kalshi data"
-          >
-            <RefreshCw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center relative">
 
-        {/* Live Data Banner */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isLoading
-                  ? "bg-yellow-400 animate-pulse"
-                  : kalshiError
-                  ? "bg-red-400"
-                  : "bg-green-400"
-              }`}
+            {/* Left Side */}
+            <button
+              onClick={() => router.push("/mrbeast")}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm font-medium">Back to Dashboard</span>
+            </button>
+
+            {/* Centered Logo */}
+            <img
+              src={BULLISH_SIGNALS_LOGO_URL}
+              alt="Bullish Signals"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{ width: "97px", height: "56px" }}
             />
-            <span className="text-sm text-gray-300">
-              {loadingKalshi
-                ? "Fetching live prices from Kalshi…"
-                : loadingRecs
-                ? "Calculating recommendations…"
-                : kalshiError
-                ? "Could not connect to Kalshi"
-                : `Live Kalshi data · ${kalshiPrices.length} markets loaded`}
-            </span>
+
+            {/* Right Side */}
+            <button
+              onClick={loadKalshiData}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all disabled:opacity-60"
+              title="Refresh Kalshi data"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+              <span className="text-sm">Refresh</span>
+            </button>
           </div>
-          {lastUpdated && !loadingKalshi && (
-            <span className="text-xs text-gray-500">
-              Updated {new Date(lastUpdated).toLocaleTimeString()}
-            </span>
-          )}
         </div>
+      </header>
+
+      {/* Hero Section */}
+      <div className="bg-sky-400 px-4 pt-10 pb-10">
+        <div className="max-w-6xl mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-bold text-white drop-shadow pb-2">
+            Price Analysis
+          </h1>
+          <p className="text-white text-lg mt-3">
+            Real-time Kalshi market data with AI-powered trade recommendations
+          </p>
+
+          {/* Live status pill */}
+          <div className="flex justify-center mt-6">
+            <div
+              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-5 py-2"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <span
+                aria-hidden="true"
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  isLoading
+                    ? "bg-yellow-200 animate-pulse"
+                    : kalshiError
+                    ? "bg-red-200"
+                    : kalshiPrices.length === 0
+                    ? "bg-white/60"
+                    : "bg-green-200"
+                }`}
+              />
+              <span className="text-white text-sm font-medium">
+                {loadingKalshi
+                  ? "Fetching live prices from Kalshi…"
+                  : loadingRecs
+                  ? "Calculating recommendations…"
+                  : kalshiError
+                  ? "Could not connect to Kalshi"
+                  : kalshiPrices.length === 0
+                  ? "Waiting for market to open"
+                  : lastUpdated
+                  ? `Live · Updated ${new Date(lastUpdated).toLocaleTimeString()}`
+                  : "Live Kalshi Data"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-6xl mx-auto px-6 py-8">
+
+        {/* Summary Stats */}
+        {!isLoading && !kalshiError && kalshiPrices.length > 0 && (
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 text-center hover:shadow-md transition-all duration-200">
+              <div className="text-3xl font-bold text-gray-900">{kalshiPrices.length}</div>
+              <div className="text-sm text-gray-500 mt-1 font-medium">Markets Tracked</div>
+            </div>
+            <div className="bg-white border border-green-200 rounded-2xl shadow-sm p-5 text-center hover:shadow-md transition-all duration-200">
+              <div className="text-3xl font-bold text-green-600">{buyRecommendations.length}</div>
+              <div className="text-sm text-gray-500 mt-1 font-medium">BUY Signals</div>
+            </div>
+            <div className="bg-white border border-amber-200 rounded-2xl shadow-sm p-5 text-center hover:shadow-md transition-all duration-200">
+              <div className="text-3xl font-bold text-amber-500">{waitRecommendations.length}</div>
+              <div className="text-sm text-gray-500 mt-1 font-medium">WAIT Signals</div>
+            </div>
+          </div>
+        )}
 
         {/* Error State */}
         {kalshiError && (
-          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-6 mb-6 text-center">
-            <p className="text-red-400 font-medium mb-2">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6 text-center shadow-sm">
+            <p className="text-red-600 font-semibold mb-2">
               ⚠️ Failed to load Kalshi data
             </p>
-            <p className="text-sm text-gray-400 mb-4">{kalshiError}</p>
+            <p className="text-sm text-gray-500 mb-4">{kalshiError}</p>
             <button
               onClick={loadKalshiData}
-              className="px-4 py-2 bg-red-600/30 hover:bg-red-600/50 border border-red-500/50 rounded text-red-300 text-sm transition-colors"
+              className="px-5 py-2 bg-red-100 hover:bg-red-200 border border-red-300 rounded-lg text-red-600 text-sm font-medium transition-colors"
             >
               Retry
             </button>
@@ -187,7 +232,7 @@ export default function PredictPage() {
             {Array.from({ length: 15 }).map((_, i) => (
               <div
                 key={i}
-                className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 h-20"
+                className="bg-gray-100 border border-gray-200 rounded-2xl p-4 h-20"
               />
             ))}
           </div>
@@ -196,20 +241,20 @@ export default function PredictPage() {
         {/* Word Price Grid */}
         {!loadingKalshi && kalshiPrices.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-white mb-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Current Kalshi Prices
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {kalshiPrices.map(({ word, price, ticker }) => (
                 <div
                   key={word}
-                  className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 text-center"
+                  className="bg-white border border-gray-200 rounded-2xl p-4 text-center shadow-sm hover:border-green-400 hover:shadow-md transition-all duration-200"
                   title={ticker}
                 >
-                  <p className="text-sm font-medium text-gray-300 mb-1 truncate">
+                  <p className="text-sm font-semibold text-gray-600 mb-1 truncate">
                     {word}
                   </p>
-                  <p className="text-xl font-bold text-green-400">
+                  <p className="text-2xl font-bold text-green-500">
                     {(price * 100).toFixed(0)}¢
                   </p>
                 </div>
@@ -218,115 +263,149 @@ export default function PredictPage() {
           </div>
         )}
 
-        {/* No markets found */}
+        {/* No markets found — waiting state */}
         {!loadingKalshi && !kalshiError && kalshiPrices.length === 0 && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 mb-6 text-center">
-            <p className="text-gray-300 font-medium mb-1">
-              No MrBeast markets on Kalshi yet
+          <div className="bg-white border border-gray-200 rounded-2xl p-10 mb-6 text-center shadow-sm">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-sky-50 rounded-full flex items-center justify-center">
+                <Clock className="w-8 h-8 text-sky-400" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              No active markets yet
+            </h3>
+            <p className="text-gray-500 text-sm max-w-sm mx-auto mb-6">
+              Kalshi hasn&apos;t opened betting for the next MrBeast video yet.
+              Check back once the market goes live — analysis will appear here automatically.
             </p>
-            <p className="text-sm text-gray-500">
-              Markets will appear here once Kalshi opens betting for the next
-              MrBeast video. Check back closer to the drop!
-            </p>
+            <button
+              onClick={() => router.push("/mrbeast")}
+              className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </button>
           </div>
         )}
 
-        {/* Results */}
+        {/* Recommendations */}
         {recommendations.length > 0 && (
-          <>
+          <div className="space-y-6">
             {/* BUY Recommendations */}
             {buyRecommendations.length > 0 && (
-              <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/50 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-bold text-green-400 mb-4">
-                  🟢 BUY ({buyRecommendations.length})
-                </h3>
-                <div className="space-y-4">
+              <section>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  🟢 BUY Recommendations
+                  <span className="ml-3 text-base font-semibold bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                    {buyRecommendations.length}
+                  </span>
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {buyRecommendations.map((rec) => (
                     <RecommendationCard key={rec.word} rec={rec} />
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
             {/* WAIT Recommendations */}
             {waitRecommendations.length > 0 && (
-              <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border border-yellow-500/50 rounded-lg p-6">
-                <h3 className="text-lg font-bold text-yellow-400 mb-4">
-                  🟡 WAIT ({waitRecommendations.length})
-                </h3>
-                <div className="space-y-4">
+              <section>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  🟡 WAIT Recommendations
+                  <span className="ml-3 text-base font-semibold bg-amber-100 text-amber-700 px-3 py-1 rounded-full">
+                    {waitRecommendations.length}
+                  </span>
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {waitRecommendations.map((rec) => (
                     <RecommendationCard key={rec.word} rec={rec} />
                   ))}
                 </div>
-              </div>
+              </section>
             )}
-          </>
-        )}
-
-        {/* Loading recs overlay */}
-        {loadingRecs && kalshiPrices.length > 0 && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 text-center">
-            <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-gray-400 text-sm">Calculating recommendations…</p>
           </div>
         )}
-      </div>
+
+        {/* Loading recs */}
+        {loadingRecs && kalshiPrices.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-sm">
+            <div className="w-10 h-10 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-600 font-medium">Calculating recommendations…</p>
+            <p className="text-gray-400 text-sm mt-1">Analyzing market prices against historical data</p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
 
 function RecommendationCard({ rec }: { rec: Recommendation }) {
+  const isPositiveEV = rec.expectedValue > 0;
+  const borderAccent = rec.action === "BUY" ? "border-l-green-400" : "border-l-amber-400";
+
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-      <div className="flex items-start justify-between mb-3">
-        <h4 className="text-lg font-bold text-white">{rec.word}</h4>
-        <div className="text-right">
-          <p className="text-sm text-gray-400">Expected Value</p>
-          <p
-            className={`text-lg font-bold ${
-              rec.expectedValue > 0 ? "text-green-400" : "text-red-400"
+    <div className={`group bg-white border border-gray-200 border-l-4 ${borderAccent} rounded-2xl p-6 hover:shadow-lg hover:shadow-green-500/10 hover:border-gray-300 transition-all duration-200`}>
+
+      {/* Top row: word + action badge + EV */}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h4 className="text-xl font-bold text-gray-900 leading-tight">{rec.word}</h4>
+          <span
+            aria-label={rec.action === "BUY" ? "Recommendation: BUY" : "Recommendation: WAIT"}
+            className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+              rec.action === "BUY"
+                ? "bg-green-100 text-green-700"
+                : "bg-amber-100 text-amber-700"
             }`}
           >
-            {rec.expectedValue > 0 ? "+" : ""}
+            {rec.action}
+          </span>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-400 mb-0.5">Expected Value</p>
+          <p
+            className={`text-xl font-bold ${
+              isPositiveEV ? "text-green-500" : "text-red-500"
+            }`}
+          >
+            {isPositiveEV ? "+" : ""}
             {(rec.expectedValue * 100).toFixed(1)}%
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-4 text-sm">
-        <div className="bg-slate-900/50 rounded p-2">
-          <p className="text-gray-400">Probability</p>
-          <p className="font-semibold text-blue-400">
-            {(rec.probability * 100).toFixed(1)}%
-          </p>
+      {/* Probability bar */}
+      <div className="mb-3">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-xs text-gray-500 font-medium">Model Probability</span>
+          <span className="text-xs font-bold text-blue-600">{(rec.probability * 100).toFixed(1)}%</span>
         </div>
-        <div className="bg-slate-900/50 rounded p-2">
-          <p className="text-gray-400">Price</p>
-          <p className="font-semibold text-purple-400">
-            {(rec.marketPrice * 100).toFixed(0)}¢
-          </p>
-        </div>
-        <div className="bg-slate-900/50 rounded p-2">
-          <p className="text-gray-400">Confidence</p>
-          <p className="font-semibold text-cyan-400">
-            {(rec.confidence * 100).toFixed(0)}%
-          </p>
+        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full"
+            style={{ width: `${rec.probability * 100}%` }}
+          />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="bg-slate-900/50 rounded p-2">
-          <p className="text-gray-400">Max Profit</p>
-          <p className="font-semibold text-green-400">
-            {(rec.profitPotential * 100).toFixed(0)}¢
-          </p>
+      {/* Stats grid */}
+      <div className="grid grid-cols-4 gap-2 mt-4">
+        <div className="bg-gray-50 rounded-xl p-2 text-center">
+          <p className="text-xs text-gray-400 mb-0.5">Price</p>
+          <p className="text-sm font-bold text-purple-600">{(rec.marketPrice * 100).toFixed(0)}¢</p>
         </div>
-        <div className="bg-slate-900/50 rounded p-2">
-          <p className="text-gray-400">Risk Level</p>
-          <p className={`font-semibold ${getRiskColor(rec.riskLevel)}`}>
-            {rec.riskLevel}
-          </p>
+        <div className="bg-gray-50 rounded-xl p-2 text-center">
+          <p className="text-xs text-gray-400 mb-0.5">Confidence</p>
+          <p className="text-sm font-bold text-cyan-600">{(rec.confidence * 100).toFixed(0)}%</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-2 text-center">
+          <p className="text-xs text-gray-400 mb-0.5">Max Profit</p>
+          <p className="text-sm font-bold text-green-600">{(rec.profitPotential * 100).toFixed(0)}¢</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-2 text-center">
+          <p className="text-xs text-gray-400 mb-0.5">Risk</p>
+          <p className={`text-sm font-bold ${getRiskColor(rec.riskLevel)}`}>{rec.riskLevel}</p>
         </div>
       </div>
     </div>
