@@ -69,7 +69,6 @@ export default function Home() {
         <img
           src={BULLISH_SIGNALS_LOGO_URL}
           alt="Bullish Signals"
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{ width: "97px", height: "53px" }}
         />
       </div>
