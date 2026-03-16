@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { BULLISH_SIGNALS_LOGO_URL } from "@/lib/constants";
 
 type MarketInfo = {
   word: string;
@@ -64,7 +65,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* Top Strip */}
-      <div className="bg-white py-[35px] px-4" />
+      <div className="bg-white py-[35px] px-4 flex justify-center items-center">
+        <img
+          src={BULLISH_SIGNALS_LOGO_URL}
+          alt="Bullish Signals"
+          className="h-20 w-auto"
+        />
+      </div>
 
       {/* Hero Section */}
       <div className="bg-sky-400 px-4 pt-10 pb-10">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Home, TrendingUp } from "lucide-react";
 import { getConfidenceInterpretation } from "@/lib/probability";
+import { BULLISH_SIGNALS_LOGO_URL } from "@/lib/constants";
 
 type WordStats = {
   word: string;
@@ -67,6 +68,15 @@ export default function MrBeastHome() {
   return (
     <div className="min-h-screen bg-white">
       
+      {/* Logo */}
+      <div className="bg-white flex justify-center items-center py-4 border-b border-gray-100">
+        <img
+          src={BULLISH_SIGNALS_LOGO_URL}
+          alt="Bullish Signals"
+          className="h-20 w-auto"
+        />
+      </div>
+
       {/* Header */}
       <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-6">

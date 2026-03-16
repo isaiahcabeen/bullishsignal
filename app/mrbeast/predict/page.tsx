@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { getRiskColor } from "@/lib/probability";
+import { BULLISH_SIGNALS_LOGO_URL } from "@/lib/constants";
 
 type Recommendation = {
   word: string;
@@ -106,6 +107,14 @@ export default function PredictPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
+      {/* Logo */}
+      <div className="flex justify-center items-center py-4 mb-2">
+        <img
+          src={BULLISH_SIGNALS_LOGO_URL}
+          alt="Bullish Signals"
+          className="h-20 w-auto"
+        />
+      </div>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
