@@ -63,8 +63,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Top Strip */}
-      <div className="bg-white py-[35px] px-4" />
+      {/* Header */}
+      <header className="bg-white py-6 px-4 flex justify-center items-center">
+        <img
+          src="https://github.com/user-attachments/assets/2abde47d-7731-484b-987c-f45fb043c4a2"
+          alt="Bullish Signals"
+          width={160}
+          height={160}
+          className="object-contain"
+        />
+      </header>
 
       {/* Hero Section */}
       <div className="bg-sky-400 px-4 pt-10 pb-10">
