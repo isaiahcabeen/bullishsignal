@@ -67,9 +67,9 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          {/* Left nav: Markets, Strategies, Data */}
-          <nav className="flex items-center gap-12">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center">
+          {/* Left nav */}
+          <nav className="flex items-center gap-6 flex-1 justify-start">
             <Link href="/#markets" className="nav-link">
               Markets
             </Link>
@@ -81,8 +81,8 @@ export default function Home() {
             </Link>
           </nav>
 
-          {/* Centered Logo */}
-          <Link href="/">
+          {/* Logo centered between left and right nav */}
+          <Link href="/" className="mx-8 flex-shrink-0">
             <img
               src={BULLISH_SIGNALS_LOGO_URL}
               alt="Bullish Signals"
@@ -90,8 +90,8 @@ export default function Home() {
             />
           </Link>
 
-          {/* Right nav: About, FAQ */}
-          <nav className="flex items-center gap-12">
+          {/* Right nav */}
+          <nav className="flex items-center gap-6 flex-1 justify-end">
             <Link href="/about" className="nav-link">
               About
             </Link>
@@ -104,7 +104,6 @@ export default function Home() {
 
       {/* Hero Section */}
       <div id="markets" className="hero-banner bg-sky-400 px-4 pt-10 pb-10">
-        {/* Title Section */}
         <div className="text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-white drop-shadow pb-2">
             Trading Assistants
