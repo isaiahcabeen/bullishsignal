@@ -81,8 +81,8 @@ export default function Home() {
             </Link>
           </nav>
 
-          {/* Logo centered between left and right nav */}
-          <Link href="/" className="mx-8 flex-shrink-0">
+          {/* Centered Logo */}
+          <Link href="/" className="flex-shrink-0 mx-8">
             <img
               src={BULLISH_SIGNALS_LOGO_URL}
               alt="Bullish Signals"
@@ -127,7 +127,7 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <div className="px-4 py-6 flex flex-col gap-6 max-w-2xl mx-auto">
+      <div className="px-4 py-6 flex flex-col gap-6 max-w-2xl">
         {filteredAssistants.map((assistant) => (
           <div
             key={assistant.route}
