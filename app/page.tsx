@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { BULLISH_SIGNALS_LOGO_URL } from "@/lib/constants";
 
 type MarketInfo = {
@@ -64,17 +65,47 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Top Strip */}
-      <div className="bg-white py-3 px-4 flex justify-center items-center border-b border-gray-100">
-        <img
-          src={BULLISH_SIGNALS_LOGO_URL}
-          alt="Bullish Signals"
-          style={{ width: "97px", height: "56px" }}
-        />
-      </div>
+      {/* Header */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between relative">
+          {/* Left nav: Markets, Strategies, Data */}
+          <nav className="flex items-center gap-8">
+            <Link href="/#markets" className="nav-link">
+              Markets
+            </Link>
+            <Link href="/strategies" className="nav-link">
+              Strategies
+            </Link>
+            <Link href="/data" className="nav-link">
+              Data
+            </Link>
+          </nav>
+
+          {/* Centered Logo */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <Link href="/">
+              <img
+                src={BULLISH_SIGNALS_LOGO_URL}
+                alt="Bullish Signals"
+                style={{ width: "97px", height: "56px" }}
+              />
+            </Link>
+          </div>
+
+          {/* Right nav: About, FAQ */}
+          <nav className="flex items-center gap-8">
+            <Link href="/about" className="nav-link">
+              About
+            </Link>
+            <Link href="/faq" className="nav-link">
+              FAQ
+            </Link>
+          </nav>
+        </div>
+      </header>
 
       {/* Hero Section */}
-      <div className="bg-sky-400 px-4 pt-10 pb-10">
+      <div id="markets" className="bg-sky-400 px-4 pt-10 pb-10">
         {/* Title Section */}
         <div className="text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-white drop-shadow pb-2">

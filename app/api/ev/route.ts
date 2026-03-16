@@ -41,7 +41,7 @@ interface PriceInput {
 const VALID_VIDEO_TYPES = ["Competition", "Endurance", "Comparison", "Exploration", "Philanthropy"];
 const filePath = path.join(process.cwd(), "app/data/mrbeast.json");
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, { data: unknown; timestamp: number }>();
 
 function readVideos(): Video[] {
   if (!fs.existsSync(filePath)) {
@@ -65,7 +65,7 @@ function getFromCache(key: string) {
   return null;
 }
 
-function setCache(key: string, data: any) {
+function setCache(key: string, data: unknown) {
   cache.set(key, { data, timestamp: Date.now() });
 }
 
