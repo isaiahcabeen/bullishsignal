@@ -1,0 +1,181 @@
+import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
+
+type Video = {
+  title: string;
+  date: string;
+  type: string;
+  words: string[];
+};
+
+type VideoTypeResult = {
+  type: string;
+  probability: number;
+  recentProbability: number;
+  combinedProbability: number;
+  count: number;
+  recentCount: number;
+  description: string;
+  examples: string[];
+  emoji: string;
+};
+
+type VideoTypePrediction = {
+  types: VideoTypeResult[];
+  totalVideos: number;
+  recentWindow: number;
+  lastVideoType: string;
+  patternNote: string;
+};
+
+const filePath = path.join(process.cwd(), "app/data/mrbeast.json");
+
+const TYPE_META: Record<string, { description: string; emoji: string }> = {
+  Competition: {
+    description:
+      "Contestants compete in structured challenges or games for a prize. Often includes multiple rounds, elimination, and a large group of participants.",
+    emoji: "🏆",
+  },
+  Endurance: {
+    description:
+      "Participants must survive or persist through extreme conditions for an extended duration to win a reward. Tests physical and mental limits.",
+    emoji: "⏱️",
+  },
+  Comparison: {
+    description:
+      "Side-by-side comparison of items or experiences at wildly different price points, demonstrating the difference money makes.",
+    emoji: "⚖️",
+  },
+  Exploration: {
+    description:
+      "MrBeast ventures into unusual locations, landmarks, or environments — from ancient pyramids to underground bunkers.",
+    emoji: "🗺️",
+  },
+  Philanthropy: {
+    description:
+      "Giving back through large-scale charitable acts, whether building infrastructure, feeding communities, or donating to those in need.",
+    emoji: "💚",
+  },
+};
+
+function readVideos(): Video[] {
+  const data = fs.readFileSync(filePath, "utf-8");
+  return JSON.parse(data);
+}
+
+function startsWithVowel(word: string): boolean {
+  return /^[aeiou]/i.test(word);
+}
+
+export async function GET() {
+  try {
+    const videos = readVideos();
+    const sorted = [...videos].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    const totalVideos = sorted.length;
+    const RECENT_WINDOW = 15;
+    const recentVideos = sorted.slice(0, RECENT_WINDOW);
+    const lastVideoType = sorted[0]?.type ?? "Unknown";
+
+    // Count all types in full dataset
+    const allTypeCounts: Record<string, number> = {};
+    for (const v of sorted) {
+      allTypeCounts[v.type] = (allTypeCounts[v.type] ?? 0) + 1;
+    }
+
+    // Count types in recent window
+    const recentTypeCounts: Record<string, number> = {};
+    for (const v of recentVideos) {
+      recentTypeCounts[v.type] = (recentTypeCounts[v.type] ?? 0) + 1;
+    }
+
+    // Collect one example video per type (use most recent)
+    const examplesByType: Record<string, string[]> = {};
+    for (const v of sorted) {
+      if (!examplesByType[v.type]) examplesByType[v.type] = [];
+      if (examplesByType[v.type].length < 3) {
+        examplesByType[v.type].push(v.title);
+      }
+    }
+
+    // Count what type follows the last video type (pattern analysis)
+    const patternCounts: Record<string, number> = {};
+    for (let i = 0; i < sorted.length - 1; i++) {
+      if (sorted[i + 1].type === lastVideoType) {
+        patternCounts[sorted[i].type] = (patternCounts[sorted[i].type] ?? 0) + 1;
+      }
+    }
+    const patternTotal = Object.values(patternCounts).reduce((a, b) => a + b, 0);
+
+    const allTypes = Object.keys(TYPE_META);
+
+    const types: VideoTypeResult[] = allTypes.map((type) => {
+      const count = allTypeCounts[type] ?? 0;
+      const recentCount = recentTypeCounts[type] ?? 0;
+
+      const probability = totalVideos > 0 ? count / totalVideos : 0;
+      const recentProbability =
+        RECENT_WINDOW > 0 ? recentCount / RECENT_WINDOW : 0;
+
+      // Weighted combination: 40% historical, 40% recent, 20% pattern signal
+      const patternProb =
+        patternTotal > 0 ? (patternCounts[type] ?? 0) / patternTotal : probability;
+
+      const combinedProbability =
+        0.4 * probability + 0.4 * recentProbability + 0.2 * patternProb;
+
+      return {
+        type,
+        probability,
+        recentProbability,
+        combinedProbability,
+        count,
+        recentCount,
+        description: TYPE_META[type].description,
+        examples: examplesByType[type] ?? [],
+        emoji: TYPE_META[type].emoji,
+      };
+    });
+
+    // Normalize combined probabilities so they sum to 1
+    const combinedSum = types.reduce((s, t) => s + t.combinedProbability, 0);
+    const normalized = types.map((t) => ({
+      ...t,
+      combinedProbability:
+        combinedSum > 0 ? t.combinedProbability / combinedSum : 0,
+    }));
+
+    // Sort by combined probability descending
+    normalized.sort((a, b) => b.combinedProbability - a.combinedProbability);
+
+    // Build pattern note
+    const topPatternType =
+      patternTotal > 0
+        ? Object.entries(patternCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
+        : null;
+
+    const patternNote =
+      topPatternType
+        ? `After ${startsWithVowel(lastVideoType) ? "an" : "a"} ${lastVideoType} video, ${topPatternType} has been the most common follow-up type.`
+        : `The most recent video was ${startsWithVowel(lastVideoType) ? "an" : "a"} ${lastVideoType}.`;
+
+    const result: VideoTypePrediction = {
+      types: normalized,
+      totalVideos,
+      recentWindow: RECENT_WINDOW,
+      lastVideoType,
+      patternNote,
+    };
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Failed to compute video type predictions", error);
+    return NextResponse.json(
+      { error: "Failed to compute video type predictions" },
+      { status: 500 }
+    );
+  }
+}
