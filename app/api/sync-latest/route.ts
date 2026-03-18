@@ -91,7 +91,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let maxResults = 10;
+  let maxResults = 100;
   try {
     const body = await req.json().catch((parseErr) => {
       console.warn("sync-latest: could not parse request body, using defaults", parseErr);
