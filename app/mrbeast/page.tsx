@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Home } from "lucide-react";
+import { Home, RefreshCw } from "lucide-react";
 import { getConfidenceInterpretation } from "@/lib/probability";
 import { BULLISH_SIGNALS_LOGO_URL } from "@/lib/constants";
 
@@ -20,10 +20,19 @@ type WordStats = {
   appearanceRate: number;
 };
 
+type SyncResult = {
+  added: Array<{ title: string; date: string; type: string; words: string[] }>;
+  skipped: string[];
+  failed: Array<{ title: string; reason: string }>;
+};
+
 export default function MrBeastHome() {
   const [stats, setStats] = useState<WordStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -40,6 +49,31 @@ export default function MrBeastHome() {
 
     loadData();
   }, []);
+
+  async function handleSync() {
+    setSyncing(true);
+    setSyncResult(null);
+    setSyncError(null);
+    try {
+      const res = await fetch("/api/sync-latest", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setSyncError(data.error ?? "Sync failed");
+      } else {
+        setSyncResult(data);
+        if (data.added.length > 0) {
+          // Reload word stats to reflect new data
+          const evRes = await fetch("/api/ev");
+          const evData = await evRes.json();
+          setStats(evData);
+        }
+      }
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const filteredStats = stats.filter((s) =>
     s.word.toLowerCase().includes(filter.toLowerCase())
@@ -104,6 +138,14 @@ export default function MrBeastHome() {
               >
                 Video Type
               </Link>
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-lg hover:shadow-lg hover:shadow-green-500/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "Syncing…" : "Sync Latest"}
+              </button>
               <Link
                 href="/mrbeast/predict"
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all"
@@ -118,6 +160,31 @@ export default function MrBeastHome() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-12">
+
+        {/* Sync result notification */}
+        {syncError && (
+          <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <strong>Sync failed:</strong> {syncError}
+          </div>
+        )}
+        {syncResult && !syncError && (
+          <div className="mb-6 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+            {syncResult.added.length > 0 ? (
+              <>
+                <strong>✅ Added {syncResult.added.length} new video{syncResult.added.length !== 1 ? "s" : ""}:</strong>{" "}
+                {syncResult.added.slice(0, 3).map((v) => v.title).join(", ")}
+                {syncResult.added.length > 3 && ` and ${syncResult.added.length - 3} more`}
+              </>
+            ) : (
+              <strong>✅ Already up to date — no new videos found.</strong>
+            )}
+            {syncResult.failed.length > 0 && (
+              <p className="mt-1 text-amber-700">
+                ⚠️ {syncResult.failed.length} video{syncResult.failed.length !== 1 ? "s" : ""} could not be processed (transcript unavailable).
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Search */}
         <div className="mb-8">
