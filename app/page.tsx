@@ -15,7 +15,6 @@ type KalshiPrice = {
 type MarketInfo = {
   word: string;
   price: number;
-  volume?: number;
 } | null;
 
 type Assistant = {
@@ -23,13 +22,21 @@ type Assistant = {
   route: string;
 };
 
+type CountdownState = {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+};
+
 export default function Home() {
   const router = useRouter();
+
   const [search, setSearch] = useState("");
   const [imgError, setImgError] = useState(false);
   const [marketInfo, setMarketInfo] = useState<MarketInfo>(null);
   const [marketLive, setMarketLive] = useState(false);
-  const [countdown, setCountdown] = useState({
+  const [countdown, setCountdown] = useState<CountdownState>({
     days: 0,
     hours: 0,
     minutes: 0,
@@ -59,7 +66,6 @@ export default function Home() {
         const first: KalshiPrice = data.prices[0];
         const word: unknown = first.word;
         const price: unknown = first.price;
-        const volume: unknown = first.volume;
 
         if (
           typeof word === "string" &&
@@ -67,11 +73,7 @@ export default function Home() {
           price >= 0 &&
           price <= 1
         ) {
-          setMarketInfo({
-            word,
-            price,
-            volume: typeof volume === "number" ? volume : undefined,
-          });
+          setMarketInfo({ word, price });
           setMarketLive(true);
           setLastUpdated(new Date().toLocaleTimeString());
         }
@@ -86,10 +88,9 @@ export default function Home() {
     }
   };
 
-  // Initial fetch and set up interval
+  // Initial fetch and set up interval for auto-refresh every 15 seconds
   useEffect(() => {
     fetchMarket();
-    // Refresh every 15 seconds
     const interval = setInterval(fetchMarket, 15000);
     return () => clearInterval(interval);
   }, []);
@@ -98,7 +99,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setInterval(() => {
       if (!marketLive) {
-        // Mock countdown - you can replace with real market open time
+        // Calculate time until next market opens (mock: tomorrow at midnight)
         const now = new Date();
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -126,13 +127,13 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center">
           {/* Left nav */}
           <nav className="flex items-center gap-6 flex-1 justify-start">
-            <Link href="/#markets" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
+            <Link href="/#markets" className="text-gray-700 hover:text-blue-600 font-medium">
               Markets
             </Link>
-            <Link href="/strategies" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
+            <Link href="/strategies" className="text-gray-700 hover:text-blue-600 font-medium">
               Strategies
             </Link>
-            <Link href="/data" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
+            <Link href="/data" className="text-gray-700 hover:text-blue-600 font-medium">
               Data
             </Link>
           </nav>
@@ -148,10 +149,10 @@ export default function Home() {
 
           {/* Right nav */}
           <nav className="flex items-center gap-6 flex-1 justify-end">
-            <Link href="/about" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
+            <Link href="/about" className="text-gray-700 hover:text-blue-600 font-medium">
               About
             </Link>
-            <Link href="/faq" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
+            <Link href="/faq" className="text-gray-700 hover:text-blue-600 font-medium">
               FAQ
             </Link>
           </nav>
@@ -193,6 +194,7 @@ export default function Home() {
             {/* Left Image */}
             <div className="w-44 md:w-52 flex-shrink-0 bg-gray-800 relative overflow-hidden flex items-center justify-center">
               {!imgError ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src="https://github.com/user-attachments/assets/e2ad1291-8065-4357-911a-ba0a41ea5668"
                   alt="MrBeast"
@@ -219,24 +221,16 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Status indicator */}
+              {/* Status + Countdown */}
               <div className="mb-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      loading
-                        ? "bg-yellow-400 animate-pulse"
-                        : marketLive
-                        ? "bg-green-400"
-                        : "bg-gray-400"
-                    }`}
-                  />
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                    {loading ? "Loading..." : marketLive ? "Market Live" : "Market Opens In"}
-                  </p>
-                </div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                  {loading
+                    ? "Loading market data…"
+                    : marketLive
+                    ? "Live Now"
+                    : "Market Opens In"}
+                </p>
 
-                {/* Countdown */}
                 {marketLive ? (
                   <span className="inline-block bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-sm">
                     🟢 Live Now
@@ -268,15 +262,6 @@ export default function Home() {
               {/* Market Info */}
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 <div className="flex items-center gap-1">
-                  <span className="text-gray-400">Volume:</span>
-                  <span className="font-semibold text-gray-800">
-                    {marketInfo?.volume
-                      ? `$${(marketInfo.volume / 1000).toFixed(0)}K`
-                      : "N/A"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1">
                   <span className="text-gray-400">Word:</span>
                   <span className="font-semibold text-gray-800">
                     {marketInfo ? `"${marketInfo.word}"` : "N/A"}
@@ -293,8 +278,8 @@ export default function Home() {
               </div>
 
               {/* Last updated */}
-              {lastUpdated && (
-                <p className="text-xs text-gray-300 mt-2">
+              {lastUpdated && marketLive && (
+                <p className="text-xs text-gray-400 mt-2">
                   Updated: {lastUpdated}
                 </p>
               )}
