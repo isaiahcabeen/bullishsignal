@@ -181,7 +181,7 @@ export default function PredictPage() {
                 : kalshiPrices.length === 0
                 ? "Waiting for market to open"
                 : lastUpdated
-                ? `Live · Updated ${new Date(lastUpdated).toLocaleTimeString()}`
+                ? `Live · Updated ${new Date(lastUpdated).toLocaleTimeString("en-US", { timeZone: "America/Chicago" })}`
                 : "Live Kalshi Data"}
             </span>
           </div>

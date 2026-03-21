@@ -75,7 +75,7 @@ export default function Home() {
         ) {
           setMarketInfo({ word, price });
           setMarketLive(true);
-          setLastUpdated(new Date().toLocaleTimeString());
+          setLastUpdated(new Date().toLocaleTimeString("en-US", { timeZone: "America/Chicago" }));
         }
       } else {
         setMarketLive(false);
