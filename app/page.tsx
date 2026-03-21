@@ -5,9 +5,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BULLISH_SIGNALS_LOGO_URL } from "@/lib/constants";
 
+type KalshiPrice = {
+  word: string;
+  ticker: string;
+  title: string;
+  price: number;
+};
+
 type MarketInfo = {
   word: string;
   price: number;
+  volume?: number;
 } | null;
 
 type Assistant = {
@@ -17,11 +25,18 @@ type Assistant = {
 
 export default function Home() {
   const router = useRouter();
-
   const [search, setSearch] = useState("");
   const [imgError, setImgError] = useState(false);
   const [marketInfo, setMarketInfo] = useState<MarketInfo>(null);
   const [marketLive, setMarketLive] = useState(false);
+  const [countdown, setCountdown] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const assistants: Assistant[] = [
     {
@@ -34,34 +49,75 @@ export default function Home() {
     assistant.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  useEffect(() => {
-    async function fetchMarket() {
-      try {
-        const res = await fetch("/api/kalshi");
-        const data = await res.json();
+  // Fetch market data
+  const fetchMarket = async () => {
+    try {
+      const res = await fetch("/api/kalshi");
+      const data = await res.json();
 
-        if (res.ok && Array.isArray(data.prices) && data.prices.length > 0) {
-          const first = data.prices[0];
-          const word: unknown = first.word;
-          const price: unknown = first.price;
+      if (res.ok && Array.isArray(data.prices) && data.prices.length > 0) {
+        const first: KalshiPrice = data.prices[0];
+        const word: unknown = first.word;
+        const price: unknown = first.price;
+        const volume: unknown = first.volume;
 
-          if (
-            typeof word === "string" &&
-            typeof price === "number" &&
-            price >= 0 &&
-            price <= 1
-          ) {
-            setMarketInfo({ word, price });
-            setMarketLive(true);
-          }
+        if (
+          typeof word === "string" &&
+          typeof price === "number" &&
+          price >= 0 &&
+          price <= 1
+        ) {
+          setMarketInfo({
+            word,
+            price,
+            volume: typeof volume === "number" ? volume : undefined,
+          });
+          setMarketLive(true);
+          setLastUpdated(new Date().toLocaleTimeString());
         }
-      } catch {
-        // market not open yet
+      } else {
+        setMarketLive(false);
       }
+    } catch (err) {
+      console.error("Failed to fetch market data", err);
+      setMarketLive(false);
+    } finally {
+      setLoading(false);
     }
+  };
 
+  // Initial fetch and set up interval
+  useEffect(() => {
     fetchMarket();
+    // Refresh every 15 seconds
+    const interval = setInterval(fetchMarket, 15000);
+    return () => clearInterval(interval);
   }, []);
+
+  // Countdown timer (runs every second)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!marketLive) {
+        // Mock countdown - you can replace with real market open time
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+
+        const diff = tomorrow.getTime() - now.getTime();
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor(
+          (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+        );
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        setCountdown({ days, hours, minutes, seconds });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [marketLive]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -70,13 +126,13 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center">
           {/* Left nav */}
           <nav className="flex items-center gap-6 flex-1 justify-start">
-            <Link href="/#markets" className="nav-link">
+            <Link href="/#markets" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
               Markets
             </Link>
-            <Link href="/strategies" className="nav-link">
+            <Link href="/strategies" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
               Strategies
             </Link>
-            <Link href="/data" className="nav-link">
+            <Link href="/data" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
               Data
             </Link>
           </nav>
@@ -92,10 +148,10 @@ export default function Home() {
 
           {/* Right nav */}
           <nav className="flex items-center gap-6 flex-1 justify-end">
-            <Link href="/about" className="nav-link">
+            <Link href="/about" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
               About
             </Link>
-            <Link href="/faq" className="nav-link">
+            <Link href="/faq" className="nav-link text-gray-700 hover:text-blue-600 font-medium">
               FAQ
             </Link>
           </nav>
@@ -163,12 +219,24 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Countdown */}
+              {/* Status indicator */}
               <div className="mb-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                  Market Opens In
-                </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      loading
+                        ? "bg-yellow-400 animate-pulse"
+                        : marketLive
+                        ? "bg-green-400"
+                        : "bg-gray-400"
+                    }`}
+                  />
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                    {loading ? "Loading..." : marketLive ? "Market Live" : "Market Opens In"}
+                  </p>
+                </div>
 
+                {/* Countdown */}
                 {marketLive ? (
                   <span className="inline-block bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-sm">
                     🟢 Live Now
@@ -176,10 +244,10 @@ export default function Home() {
                 ) : (
                   <div className="flex gap-2">
                     {[
-                      { label: "D", value: 0 },
-                      { label: "H", value: 0 },
-                      { label: "M", value: 0 },
-                      { label: "S", value: 0 },
+                      { label: "D", value: countdown.days },
+                      { label: "H", value: countdown.hours },
+                      { label: "M", value: countdown.minutes },
+                      { label: "S", value: countdown.seconds },
                     ].map(({ label, value }) => (
                       <div
                         key={label}
@@ -201,7 +269,11 @@ export default function Home() {
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 <div className="flex items-center gap-1">
                   <span className="text-gray-400">Volume:</span>
-                  <span className="font-semibold text-gray-800">N/A</span>
+                  <span className="font-semibold text-gray-800">
+                    {marketInfo?.volume
+                      ? `$${(marketInfo.volume / 1000).toFixed(0)}K`
+                      : "N/A"}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -219,6 +291,13 @@ export default function Home() {
                   </span>
                 </div>
               </div>
+
+              {/* Last updated */}
+              {lastUpdated && (
+                <p className="text-xs text-gray-300 mt-2">
+                  Updated: {lastUpdated}
+                </p>
+              )}
             </div>
           </div>
         ))}
