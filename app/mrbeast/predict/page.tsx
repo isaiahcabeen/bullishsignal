@@ -25,6 +25,15 @@ type KalshiWordPrice = {
   price: number;
 };
 
+type MarketResult = {
+  ticker: string;
+  title: string;
+  status: string;
+  open_time?: string;
+  close_time?: string;
+  result?: string;
+};
+
 export default function PredictPage() {
   const router = useRouter();
   const [kalshiPrices, setKalshiPrices] = useState<KalshiWordPrice[]>([]);
@@ -33,6 +42,8 @@ export default function PredictPage() {
   const [loadingKalshi, setLoadingKalshi] = useState(false);
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [kalshiError, setKalshiError] = useState<string | null>(null);
+  const [marketResults, setMarketResults] = useState<MarketResult[]>([]);
+  const [loadingResults, setLoadingResults] = useState(false);
 
   const calculateRecommendations = useCallback(
     async (prices: KalshiWordPrice[]) => {
@@ -93,10 +104,26 @@ export default function PredictPage() {
     }
   }, [calculateRecommendations]);
 
-  // Fetch Kalshi data on page load
+  const loadMarketResults = useCallback(async () => {
+    setLoadingResults(true);
+    try {
+      const res = await fetch("/api/kalshi/results");
+      const data = await res.json();
+      if (res.ok) {
+        setMarketResults(data.results ?? []);
+      }
+    } catch (err) {
+      console.error("Failed to load market results", err);
+    } finally {
+      setLoadingResults(false);
+    }
+  }, []);
+
+  // Fetch Kalshi data and results on page load
   useEffect(() => {
     loadKalshiData();
-  }, [loadKalshiData]);
+    loadMarketResults();
+  }, [loadKalshiData, loadMarketResults]);
 
   const buyRecommendations = recommendations.filter((r) => r.action === "BUY");
   const waitRecommendations = recommendations.filter(
@@ -333,6 +360,29 @@ export default function PredictPage() {
             <p className="text-gray-400 text-sm mt-1">Analyzing market prices against historical data</p>
           </div>
         )}
+
+        {/* Market Results Section */}
+        {(marketResults.length > 0 || loadingResults) && (
+          <section className="mt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              📋 Past Market Results
+            </h2>
+
+            {loadingResults ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="bg-gray-100 rounded-2xl h-24" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {marketResults.map((result) => (
+                  <MarketResultCard key={result.ticker} result={result} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );
@@ -405,6 +455,59 @@ function RecommendationCard({ rec }: { rec: Recommendation }) {
           <p className="text-xs text-gray-400 mb-0.5">Risk</p>
           <p className={`text-sm font-bold ${getRiskColor(rec.riskLevel)}`}>{rec.riskLevel}</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MarketResultCard({ result }: { result: MarketResult }) {
+  const resolved = result.result?.toUpperCase();
+  const isYes = resolved === "YES";
+  const isNo = resolved === "NO";
+
+  const closedAt = result.close_time
+    ? new Date(result.close_time).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "America/Chicago",
+      })
+    : null;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 leading-snug truncate">
+            {result.title}
+          </p>
+          {closedAt && (
+            <p className="text-xs text-gray-400 mt-0.5">Closed {closedAt}</p>
+          )}
+        </div>
+
+        {resolved ? (
+          <span
+            className={`flex-shrink-0 inline-block text-sm font-bold px-3 py-1 rounded-full ${
+              isYes
+                ? "bg-green-100 text-green-700"
+                : isNo
+                ? "bg-red-100 text-red-700"
+                : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {isYes ? "✅ YES" : isNo ? "❌ NO" : resolved}
+          </span>
+        ) : (
+          <span className="flex-shrink-0 inline-block text-xs font-medium px-3 py-1 rounded-full bg-gray-100 text-gray-500">
+            Pending
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3 text-xs text-gray-500">
+        <span className="font-medium text-gray-600">Ticker:</span>{" "}
+        <span className="font-mono">{result.ticker}</span>
       </div>
     </div>
   );

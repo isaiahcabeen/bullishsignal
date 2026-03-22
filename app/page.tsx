@@ -12,6 +12,15 @@ type KalshiPrice = {
   price: number;
 };
 
+type MarketMetadata = {
+  ticker: string;
+  title: string;
+  status: string;
+  open_time?: string;
+  close_time?: string;
+  result?: string;
+};
+
 type MarketInfo = {
   word: string;
   price: number;
@@ -29,13 +38,30 @@ type CountdownState = {
   seconds: number;
 };
 
+type MarketPhase =
+  | "live"
+  | "opening-soon"
+  | "closed"
+  | "no-market"
+  | "loading";
+
+function computeCountdown(targetMs: number): CountdownState {
+  const diff = Math.max(0, targetMs - Date.now());
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  return { days, hours, minutes, seconds };
+}
+
 export default function Home() {
   const router = useRouter();
 
   const [search, setSearch] = useState("");
   const [imgError, setImgError] = useState(false);
   const [marketInfo, setMarketInfo] = useState<MarketInfo>(null);
-  const [marketLive, setMarketLive] = useState(false);
+  const [marketPhase, setMarketPhase] = useState<MarketPhase>("loading");
+  const [countdownTarget, setCountdownTarget] = useState<number | null>(null);
   const [countdown, setCountdown] = useState<CountdownState>({
     days: 0,
     hours: 0,
@@ -56,7 +82,7 @@ export default function Home() {
     assistant.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Fetch market data
+  // Fetch market data and derive phase + countdown target from real Kalshi data
   const fetchMarket = async () => {
     try {
       const res = await fetch("/api/kalshi");
@@ -74,51 +100,102 @@ export default function Home() {
           price <= 1
         ) {
           setMarketInfo({ word, price });
-          setMarketLive(true);
-          setLastUpdated(new Date().toLocaleTimeString("en-US", { timeZone: "America/Chicago" }));
+          setLastUpdated(
+            new Date().toLocaleTimeString("en-US", {
+              timeZone: "America/Chicago",
+            })
+          );
         }
       } else {
-        setMarketLive(false);
+        setMarketInfo(null);
       }
+
+      // Determine market phase from metadata
+      const metadata: MarketMetadata[] = data.marketMetadata ?? [];
+      derivePhaseFromMetadata(metadata, data.prices ?? []);
     } catch (err) {
       console.error("Failed to fetch market data", err);
-      setMarketLive(false);
+      setMarketPhase("no-market");
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial fetch and set up interval for auto-refresh every 15 seconds
+  function derivePhaseFromMetadata(
+    metadata: MarketMetadata[],
+    prices: KalshiPrice[]
+  ) {
+    // Any open market with live prices → live
+    const openMarket = metadata.find((m) => m.status === "open");
+    if (openMarket && prices.length > 0) {
+      setMarketPhase("live");
+      // Show countdown to close if we have a close_time
+      if (openMarket.close_time) {
+        setCountdownTarget(new Date(openMarket.close_time).getTime());
+      } else {
+        setCountdownTarget(null);
+      }
+      return;
+    }
+
+    // Open market exists but no prices yet (pre-open window) → opening-soon
+    if (openMarket) {
+      setMarketPhase("opening-soon");
+      if (openMarket.open_time) {
+        setCountdownTarget(new Date(openMarket.open_time).getTime());
+      } else {
+        setCountdownTarget(null);
+      }
+      return;
+    }
+
+    // Closed market (awaiting resolution) → closed
+    const closedMarket = metadata.find((m) => m.status === "closed");
+    if (closedMarket) {
+      setMarketPhase("closed");
+      setCountdownTarget(null);
+      return;
+    }
+
+    // No relevant markets found
+    if (metadata.length === 0 && prices.length === 0) {
+      setMarketPhase("no-market");
+      setCountdownTarget(null);
+      return;
+    }
+
+    // Fallback
+    setMarketPhase("no-market");
+    setCountdownTarget(null);
+  }
+
+  // Initial fetch and auto-refresh every 15 seconds
   useEffect(() => {
     fetchMarket();
     const interval = setInterval(fetchMarket, 15000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Countdown timer (runs every second)
+  // Countdown timer ticks every second toward the target time
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (!marketLive) {
-        // Calculate time until next market opens (mock: tomorrow at midnight)
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
+    if (countdownTarget === null) return;
 
-        const diff = tomorrow.getTime() - now.getTime();
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor(
-          (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-        );
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-        setCountdown({ days, hours, minutes, seconds });
-      }
-    }, 1000);
-
+    const tick = () => setCountdown(computeCountdown(countdownTarget));
+    tick();
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [marketLive]);
+  }, [countdownTarget]);
+
+  const phaseLabel = loading
+    ? "Loading market data…"
+    : marketPhase === "live"
+    ? "Live Now · Market Closes In"
+    : marketPhase === "opening-soon"
+    ? "Market Opens In"
+    : marketPhase === "closed"
+    ? "Market Closed"
+    : "No Upcoming Market";
 
   return (
     <div className="min-h-screen bg-white">
@@ -224,18 +301,22 @@ export default function Home() {
               {/* Status + Countdown */}
               <div className="mb-3">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                  {loading
-                    ? "Loading market data…"
-                    : marketLive
-                    ? "Live Now"
-                    : "Market Opens In"}
+                  {phaseLabel}
                 </p>
 
-                {marketLive ? (
+                {marketPhase === "live" ? (
                   <span className="inline-block bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-sm">
                     🟢 Live Now
                   </span>
-                ) : (
+                ) : marketPhase === "closed" ? (
+                  <span className="inline-block bg-gray-100 text-gray-600 font-semibold px-3 py-1 rounded-full text-sm">
+                    🔒 Market Closed
+                  </span>
+                ) : marketPhase === "no-market" ? (
+                  <span className="inline-block bg-sky-50 text-sky-600 font-semibold px-3 py-1 rounded-full text-sm">
+                    No upcoming market
+                  </span>
+                ) : countdownTarget !== null ? (
                   <div className="flex gap-2">
                     {[
                       { label: "D", value: countdown.days },
@@ -256,6 +337,10 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <span className="inline-block bg-sky-50 text-sky-600 font-semibold px-3 py-1 rounded-full text-sm">
+                    No upcoming market
+                  </span>
                 )}
               </div>
 
@@ -278,7 +363,7 @@ export default function Home() {
               </div>
 
               {/* Last updated */}
-              {lastUpdated && marketLive && (
+              {lastUpdated && marketPhase === "live" && (
                 <p className="text-xs text-gray-400 mt-2">
                   Updated: {lastUpdated}
                 </p>
@@ -290,3 +375,4 @@ export default function Home() {
     </div>
   );
 }
+

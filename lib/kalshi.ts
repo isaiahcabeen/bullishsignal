@@ -12,6 +12,15 @@ export interface KalshiMarketPrice {
   price: number; // 0-1
 }
 
+export interface KalshiMarketMetadata {
+  ticker: string;
+  title: string;
+  status: string;
+  open_time?: string;
+  close_time?: string;
+  result?: string;
+}
+
 interface KalshiMarket {
   ticker: string;
   title: string;
@@ -20,6 +29,10 @@ interface KalshiMarket {
   yes_bid?: number;
   last_price?: number;
   status?: string;
+  open_time?: string;
+  close_time?: string;
+  result?: string;
+  eligible_contract_types?: string[];
 }
 
 function generateAuthHeaders(
@@ -71,46 +84,60 @@ function extractPrice(market: KalshiMarket): number {
   return rawPrice > 1 ? rawPrice / 100 : rawPrice;
 }
 
-export async function fetchKalshiWordPrices(): Promise<KalshiMarketPrice[]> {
+function credentialsPresent(): boolean {
   if (!KALSHI_PRIVATE_KEY || !KALSHI_KEY_ID) {
-    // Credentials not configured – treat as no markets available rather than
-    // surfacing a confusing internal error to the end user.
-    return [];
-  }
-
-  const path = "/trade-api/v2/markets";
-  const queryParams = new URLSearchParams({
-    status: "open",
-    limit: "200",
-  });
-
-  const authHeaders = generateAuthHeaders("GET", path);
-
-  const response = await fetch(
-    `${KALSHI_BASE_URL}${path}?${queryParams.toString()}`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...authHeaders,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `Kalshi API error ${response.status}: ${text.slice(0, 200)}`
+    console.error(
+      "Kalshi credentials missing: KALSHI_API_KEY_ID and/or KALSHI_PRIVATE_KEY are not set. " +
+        "Market data will not be available until these environment variables are configured."
     );
+    return false;
+  }
+  return true;
+}
+
+async function fetchMarkets(statuses: string[]): Promise<KalshiMarket[]> {
+  const apiPath = "/trade-api/v2/markets";
+  const all: KalshiMarket[] = [];
+
+  for (const status of statuses) {
+    const queryParams = new URLSearchParams({ status, limit: "200" });
+    const authHeaders = generateAuthHeaders("GET", apiPath);
+
+    const response = await fetch(
+      `${KALSHI_BASE_URL}${apiPath}?${queryParams.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...authHeaders,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(
+        `Kalshi API error ${response.status}: ${text.slice(0, 200)}`
+      );
+    }
+
+    const data = await response.json();
+    all.push(...((data.markets ?? []) as KalshiMarket[]));
   }
 
-  const data = await response.json();
-  const markets: KalshiMarket[] = data.markets ?? [];
+  return all;
+}
 
-  const mrbeastMarkets = markets.filter((m) => {
-    const text = `${m.ticker} ${m.title} ${m.subtitle ?? ""}`.toLowerCase();
-    return text.includes("mrbeast") || text.includes("mr beast");
-  });
+function isMrbeastMarket(m: KalshiMarket): boolean {
+  const text = `${m.ticker} ${m.title} ${m.subtitle ?? ""}`.toLowerCase();
+  return text.includes("mrbeast") || text.includes("mr beast");
+}
+
+export async function fetchKalshiWordPrices(): Promise<KalshiMarketPrice[]> {
+  if (!credentialsPresent()) return [];
+
+  const markets = await fetchMarkets(["open"]);
+  const mrbeastMarkets = markets.filter(isMrbeastMarket);
 
   const wordPriceMap = new Map<string, KalshiMarketPrice>();
 
@@ -133,4 +160,48 @@ export async function fetchKalshiWordPrices(): Promise<KalshiMarketPrice[]> {
   }
 
   return Array.from(wordPriceMap.values());
+}
+
+/**
+ * Fetches metadata (open_time, close_time, status) for MrBeast markets,
+ * including both currently open and recently closed markets.
+ */
+export async function fetchKalshiMarketMetadata(): Promise<
+  KalshiMarketMetadata[]
+> {
+  if (!credentialsPresent()) return [];
+
+  const markets = await fetchMarkets(["open", "closed"]);
+  return markets
+    .filter(isMrbeastMarket)
+    .map((m) => ({
+      ticker: m.ticker,
+      title: m.title,
+      status: m.status ?? "unknown",
+      open_time: m.open_time,
+      close_time: m.close_time,
+      result: m.result,
+    }));
+}
+
+/**
+ * Fetches resolved/finalized MrBeast markets so the UI can display results
+ * alongside original BUY/WAIT recommendations.
+ */
+export async function fetchKalshiMarketResults(): Promise<
+  KalshiMarketMetadata[]
+> {
+  if (!credentialsPresent()) return [];
+
+  const markets = await fetchMarkets(["finalized"]);
+  return markets
+    .filter(isMrbeastMarket)
+    .map((m) => ({
+      ticker: m.ticker,
+      title: m.title,
+      status: m.status ?? "finalized",
+      open_time: m.open_time,
+      close_time: m.close_time,
+      result: m.result,
+    }));
 }
