@@ -39,14 +39,14 @@ export default function DataPage() {
       {/* Content */}
       <main className="max-w-4xl mx-auto px-6 py-12 space-y-12">
 
-        {/* Section 1 — Video transcript data */}
+        {/* Section 1 — Video data */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">📹 Video Transcript Data</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">📹 Video Data</h2>
           <p className="text-gray-600 leading-relaxed">
-            Our core dataset is built from the transcripts of MrBeast&apos;s published YouTube videos.
-            We analyze the spoken words in each video to calculate how often a given word appears
-            across the entire catalogue. This gives us an empirical baseline — a word that shows
-            up in 80% of videos is a much safer bet than one that appeared only once.
+            Our core dataset is built from manually curated records of MrBeast&apos;s published YouTube videos.
+            Each video entry includes its title, type, publish date, and the tracked keywords present in that video.
+            This gives us an empirical baseline — a word that shows up in 80% of videos is a much safer bet than
+            one that appeared only once.
           </p>
         </section>
 
@@ -121,11 +121,9 @@ export default function DataPage() {
         <section className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-2">⚠️ Data Limitations</h2>
           <p className="text-gray-600 text-sm leading-relaxed">
-            No dataset is perfect. Transcripts can contain auto-generated errors. New video
-            formats or collaborations may shift vocabulary in unpredictable ways. Our model
-            is updated regularly, but it reflects <em>historical</em> patterns — past performance
-            is not a guarantee of future results. Always combine data-driven analysis with
-            your own judgment.
+            No dataset is perfect. New video formats or collaborations may shift vocabulary in unpredictable ways.
+            Our model reflects <em>historical</em> patterns — past performance is not a guarantee of future results.
+            Always combine data-driven analysis with your own judgment.
           </p>
         </section>
       </main>

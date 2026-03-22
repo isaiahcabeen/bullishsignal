@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { YoutubeTranscript } from "youtube-transcript";
-import { WORDS } from "@/lib/words";
-import { extractVideoId, wordBoundaryRegex } from "@/lib/youtube";
 
 type Video = {
   title: string;
@@ -11,12 +8,6 @@ type Video = {
   type: string;
   words: string[];
 };
-
-async function wordsFromTranscript(videoId: string): Promise<string[]> {
-  const transcript = await YoutubeTranscript.fetchTranscript(videoId);
-  const fullText = transcript.map((entry) => entry.text).join(" ");
-  return WORDS.filter((word) => wordBoundaryRegex(word).test(fullText));
-}
 
 const filePath = path.join(process.cwd(), "app/data/mrbeast.json");
 
@@ -51,48 +42,11 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, type, date, words, youtubeUrl } = body;
+    const { title, type, date, words } = body;
 
-    if (!title || !type || !date) {
+    if (!title || !type || !date || !words || words.length === 0) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    let resolvedWords: string[] = words ?? [];
-
-    if (youtubeUrl) {
-      const videoId = extractVideoId(youtubeUrl);
-      if (!videoId) {
-        return NextResponse.json(
-          { error: "Invalid YouTube URL or video ID" },
-          { status: 400 }
-        );
-      }
-      try {
-        resolvedWords = await wordsFromTranscript(videoId);
-      } catch (transcriptError) {
-        return NextResponse.json(
-          {
-            error: `Failed to fetch transcript: ${
-              transcriptError instanceof Error
-                ? transcriptError.message
-                : "Unknown error"
-            }`,
-          },
-          { status: 502 }
-        );
-      }
-    }
-
-    if (!resolvedWords || resolvedWords.length === 0) {
-      return NextResponse.json(
-        {
-          error: youtubeUrl
-            ? "No tracked words found in video transcript"
-            : "Missing required fields",
-        },
         { status: 400 }
       );
     }
@@ -106,11 +60,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const newVideo: Video = { title, type, date, words: resolvedWords };
+    const newVideo: Video = { title, type, date, words };
     videos.push(newVideo);
     writeVideos(videos);
 
-    return NextResponse.json({ success: true, words: resolvedWords });
+    return NextResponse.json({ success: true, words });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to save video" },
