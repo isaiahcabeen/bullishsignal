@@ -181,13 +181,13 @@ export async function fetchKalshiMarketResults(): Promise<
 > {
   if (!credentialsPresent()) return [];
 
-  const markets = await fetchMarkets(["finalized"]);
+  const markets = await fetchMarkets(["settled"]);
   return markets
     .filter(isMrbeastMarket)
     .map((m) => ({
       ticker: m.ticker,
       title: m.title,
-      status: m.status ?? "finalized",
+      status: m.status ?? "settled",
       open_time: m.open_time,
       close_time: m.close_time,
       result: m.result,
