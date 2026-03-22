@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { WORDS } from "./words";
 
-const KALSHI_BASE_URL = process.env.KALSHI_BASE_URL ?? "https://api.kalshi.com";
+const KALSHI_BASE_URL = process.env.KALSHI_BASE_URL ?? "https://api.elections.kalshi.com";
 const KALSHI_KEY_ID = process.env.KALSHI_API_KEY_ID;
 const KALSHI_PRIVATE_KEY = process.env.KALSHI_PRIVATE_KEY ?? "";
 
