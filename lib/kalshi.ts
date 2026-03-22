@@ -3,7 +3,7 @@ import { WORDS } from "./words";
 
 const KALSHI_BASE_URL = process.env.KALSHI_BASE_URL ?? "https://api.kalshi.com";
 const KALSHI_KEY_ID = process.env.KALSHI_API_KEY_ID;
-const KALSHI_PRIVATE_KEY = (process.env.KALSHI_PRIVATE_KEY ?? "").replace(/\\n/g, "\n");
+const KALSHI_PRIVATE_KEY = process.env.KALSHI_PRIVATE_KEY ?? "";
 
 export interface KalshiMarketPrice {
   word: string;
