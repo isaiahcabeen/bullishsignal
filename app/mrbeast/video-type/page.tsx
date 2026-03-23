@@ -15,6 +15,8 @@ type VideoTypeResult = {
   description: string;
   examples: string[];
   emoji: string;
+  videosSinceLastType: number;
+  avgSpacing: number;
 };
 
 type VideoTypePrediction = {
@@ -239,11 +241,13 @@ export default function VideoTypePage() {
                       <p className="text-xs text-gray-400">{t.recentCount} of last {data.recentWindow}</p>
                     </div>
                     <div className="bg-gray-50 rounded-xl p-3 text-center">
-                      <p className="text-xs text-gray-400 mb-1">Combined Score</p>
+                      <p className="text-xs text-gray-400 mb-1">Spacing Status</p>
                       <p className="text-lg font-bold text-gray-800">
-                        {(t.combinedProbability * 100).toFixed(1)}%
+                        {t.videosSinceLastType === 0
+                          ? "Just aired"
+                          : `${t.videosSinceLastType} videos ago`}
                       </p>
-                      <p className="text-xs text-gray-400">weighted prediction</p>
+                      <p className="text-xs text-gray-400">avg every {t.avgSpacing} videos</p>
                     </div>
                   </div>
 
@@ -271,11 +275,14 @@ export default function VideoTypePage() {
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
               <h3 className="text-sm font-bold text-gray-800 mb-1">📊 How probabilities are calculated</h3>
               <p className="text-gray-600 text-sm leading-relaxed">
-                The predicted probability blends three signals: <strong>40% all-time historical frequency</strong>{" "}
+                The predicted probability blends four signals: <strong>30% all-time historical frequency</strong>{" "}
                 (how often each type has appeared across all tracked videos),{" "}
-                <strong>40% recent trend</strong> (frequency within the last {data.recentWindow} videos),
-                and <strong>20% pattern analysis</strong> (what types typically follow the most recent video type —
-                {/^[aeiou]/i.test(data.lastVideoType) ? " an" : " a"} <em>{data.lastVideoType}</em>). Combined probabilities are normalized so they sum to 100%.
+                <strong>30% recent trend</strong> (frequency within the last {data.recentWindow} videos),{" "}
+                <strong>20% spacing adjustment</strong> (how many videos have aired since the type last appeared
+                relative to its historical average — types that are &quot;overdue&quot; get a boost while recently aired
+                types cool down), and <strong>20% Markov transitions</strong> (what types have historically followed
+                {/^[aeiou]/i.test(data.lastVideoType) ? " an" : " a"} <em>{data.lastVideoType}</em> video).
+                Combined probabilities are normalized so they sum to 100%.
               </p>
             </div>
 
