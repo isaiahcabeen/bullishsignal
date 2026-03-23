@@ -26,7 +26,22 @@ export type XSignals = {
 
 // Default Nitter instance to use when NITTER_BASE_URL is not set
 const DEFAULT_NITTER_BASE_URL = "https://nitter.poast.org";
-const USER_AGENT = "bullishsignal/1.0";
+
+// Fallback Nitter instances tried in order if the primary one fails
+const FALLBACK_NITTER_INSTANCES = [
+  "https://nitter.net",
+  "https://nitter.1d4.us",
+];
+
+// Browser-like request headers to avoid 403 blocks from Nitter instances
+const REQUEST_HEADERS: Record<string, string> = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+  Accept: "application/rss+xml, application/xml, text/xml, */*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Cache-Control": "no-cache",
+  Pragma: "no-cache",
+};
 
 // Simple in-memory cache (1 hour TTL)
 const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -103,23 +118,80 @@ function parseNitterRSS(xml: string): Array<{ id: string; text: string; createdA
   return results;
 }
 
-async function fetchXSignals(): Promise<XSignals> {
-  const nitterBaseUrl =
-    (process.env.NITTER_BASE_URL ?? DEFAULT_NITTER_BASE_URL).replace(/\/$/, "");
+/**
+ * Fetch the Nitter RSS feed for MrBeast with retry + exponential backoff.
+ * Tries up to `maxRetries` times before throwing. Retries on 429 (rate-limit)
+ * and transient network errors; propagates 403 immediately so we can fall back
+ * to a different instance.
+ */
+async function fetchNitterRSS(
+  rssUrl: string,
+  maxRetries = 3,
+): Promise<string> {
+  let lastError: unknown;
 
-  const rssUrl = `${nitterBaseUrl}/MrBeast/rss`;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (attempt > 0) {
+      // Exponential backoff: 1 s, 2 s, 4 s …
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.pow(2, attempt) * 500),
+      );
+    }
 
-  const response = await fetch(rssUrl, {
-    headers: { "User-Agent": USER_AGENT },
-    // 10-second timeout using AbortSignal
-    signal: AbortSignal.timeout(10_000),
-  });
+    try {
+      const response = await fetch(rssUrl, {
+        headers: REQUEST_HEADERS,
+        signal: AbortSignal.timeout(10_000),
+      });
 
-  if (!response.ok) {
-    throw new Error(`Nitter RSS request failed: ${response.status} ${response.statusText}`);
+      if (response.ok) {
+        return await response.text();
+      }
+
+      const errMsg = `Nitter RSS request failed: ${response.status} ${response.statusText}`;
+      console.warn(`[mrbeast-x-posts] ${errMsg} (attempt ${attempt + 1}/${maxRetries}, url: ${rssUrl})`);
+
+      // Don't retry on 403 – the instance is blocking us; try a different one
+      if (response.status === 403) {
+        throw new Error(errMsg);
+      }
+
+      lastError = new Error(errMsg);
+    } catch (err) {
+      // Re-throw 403 errors immediately (no point retrying same instance)
+      if (err instanceof Error && err.message.includes("403")) throw err;
+      lastError = err;
+      console.warn(`[mrbeast-x-posts] Fetch error on attempt ${attempt + 1}/${maxRetries}:`, err);
+    }
   }
 
-  const xml = await response.text();
+  throw lastError;
+}
+
+async function fetchXSignals(): Promise<XSignals> {
+  const primaryUrl =
+    (process.env.NITTER_BASE_URL ?? DEFAULT_NITTER_BASE_URL).replace(/\/$/, "");
+
+  // Build the ordered list of instances to try: primary first, then fallbacks
+  const instances = [primaryUrl, ...FALLBACK_NITTER_INSTANCES];
+
+  let xml: string | undefined;
+  let lastError: unknown;
+
+  for (const baseUrl of instances) {
+    const rssUrl = `${baseUrl}/MrBeast/rss`;
+    try {
+      xml = await fetchNitterRSS(rssUrl);
+      break; // success – stop trying further instances
+    } catch (err) {
+      console.warn(`[mrbeast-x-posts] Instance ${baseUrl} failed, trying next…`);
+      lastError = err;
+    }
+  }
+
+  if (xml === undefined) {
+    throw lastError ?? new Error("All Nitter instances failed");
+  }
   const rawPosts = parseNitterRSS(xml).slice(0, 10);
 
   const posts: XPost[] = [];
