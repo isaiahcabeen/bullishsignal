@@ -19,6 +19,8 @@ type VideoTypeResult = {
   description: string;
   examples: string[];
   emoji: string;
+  videosSinceLastType: number;
+  avgSpacing: number;
 };
 
 type VideoTypePrediction = {
@@ -101,7 +103,9 @@ export async function GET() {
       }
     }
 
-    // Count what type follows the last video type (pattern analysis)
+    // Markov chain: count what type follows each occurrence of lastVideoType
+    // sorted is newest-first, so sorted[i+1] is older; when sorted[i+1] is lastVideoType,
+    // sorted[i] (newer) is what came immediately after it chronologically.
     const patternCounts: Record<string, number> = {};
     for (let i = 0; i < sorted.length - 1; i++) {
       if (sorted[i + 1].type === lastVideoType) {
@@ -112,6 +116,31 @@ export async function GET() {
 
     const allTypes = Object.keys(TYPE_META);
 
+    // Spacing analysis: calculate average video-count gap between consecutive occurrences per type
+    // and how many videos have aired since each type last appeared.
+    const spacingMetrics: Record<string, { avgSpacing: number; videosSinceLast: number }> = {};
+    for (const type of allTypes) {
+      const positions: number[] = [];
+      for (let i = 0; i < sorted.length; i++) {
+        if (sorted[i].type === type) positions.push(i);
+      }
+
+      // positions[0] is the index of the most recent occurrence (0 = just happened).
+      const videosSinceLast = positions.length > 0 ? positions[0] : totalVideos;
+
+      // Gap between consecutive positions represents how many video slots apart they are.
+      // positions are in ascending order (newest = smallest index).
+      let totalGap = 0;
+      let gapCount = 0;
+      for (let i = 0; i < positions.length - 1; i++) {
+        totalGap += positions[i + 1] - positions[i];
+        gapCount++;
+      }
+
+      const avgSpacing = gapCount > 0 ? totalGap / gapCount : totalVideos;
+      spacingMetrics[type] = { avgSpacing, videosSinceLast };
+    }
+
     const types: VideoTypeResult[] = allTypes.map((type) => {
       const count = allTypeCounts[type] ?? 0;
       const recentCount = recentTypeCounts[type] ?? 0;
@@ -120,12 +149,29 @@ export async function GET() {
       const recentProbability =
         RECENT_WINDOW > 0 ? recentCount / RECENT_WINDOW : 0;
 
-      // Weighted combination: 40% historical, 40% recent, 20% pattern signal
-      const patternProb =
+      // Markov transition probability: how often does `type` follow lastVideoType?
+      const markovProb =
         patternTotal > 0 ? (patternCounts[type] ?? 0) / patternTotal : probability;
 
+      // Spacing-based adjustment: scale the base frequency by how "due" this type is.
+      // spacingRatio = 1  → exactly at average spacing (neutral)
+      // spacingRatio < 1  → appeared recently, cooling down
+      // spacingRatio > 1  → overdue, boost probability
+      const { avgSpacing, videosSinceLast } = spacingMetrics[type] ?? {
+        avgSpacing: totalVideos,
+        videosSinceLast: totalVideos,
+      };
+      const spacingRatio = avgSpacing > 0
+        ? Math.min(videosSinceLast / avgSpacing, 2)
+        : 1;
+      const spacingProb = spacingRatio * probability;
+
+      // Blended prediction: 30% historical + 30% recent + 20% spacing + 20% Markov
       const combinedProbability =
-        0.4 * probability + 0.4 * recentProbability + 0.2 * patternProb;
+        0.3 * probability +
+        0.3 * recentProbability +
+        0.2 * spacingProb +
+        0.2 * markovProb;
 
       return {
         type,
@@ -137,6 +183,8 @@ export async function GET() {
         description: TYPE_META[type].description,
         examples: examplesByType[type] ?? [],
         emoji: TYPE_META[type].emoji,
+        videosSinceLastType: videosSinceLast,
+        avgSpacing: Math.round(avgSpacing * 10) / 10,
       };
     });
 
