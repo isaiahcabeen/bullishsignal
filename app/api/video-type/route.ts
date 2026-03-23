@@ -23,19 +23,12 @@ type VideoTypeResult = {
   avgSpacing: number;
 };
 
-type XSignalSummary = {
-  topType: string | null;
-  typeCounts: Record<string, number>;
-  postCount: number;
-};
-
 type VideoTypePrediction = {
   types: VideoTypeResult[];
   totalVideos: number;
   recentWindow: number;
   lastVideoType: string;
   patternNote: string;
-  xSignals?: XSignalSummary;
 };
 
 const filePath = path.join(process.cwd(), "app/data/mrbeast.json");
@@ -224,23 +217,6 @@ export async function GET() {
       lastVideoType,
       patternNote,
     };
-
-    // Optionally enrich with X signals (non-blocking; failures are silently ignored)
-    try {
-      const xRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/api/mrbeast-x-posts`
-      );
-      if (xRes.ok) {
-        const xData = await xRes.json();
-        result.xSignals = {
-          topType: xData.topType ?? null,
-          typeCounts: xData.typeCounts ?? {},
-          postCount: (xData.posts ?? []).length,
-        };
-      }
-    } catch {
-      // X signals are optional; continue without them
-    }
 
     return NextResponse.json(result);
   } catch (error) {
