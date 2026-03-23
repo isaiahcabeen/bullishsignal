@@ -25,6 +25,26 @@ type VideoTypePrediction = {
   recentWindow: number;
   lastVideoType: string;
   patternNote: string;
+  xSignals?: {
+    topType: string | null;
+    typeCounts: Record<string, number>;
+    postCount: number;
+  };
+};
+
+type XPost = {
+  id: string;
+  text: string;
+  createdAt: string;
+  detectedKeywords: string[];
+  matchedTypes: string[];
+};
+
+type XSignalsData = {
+  posts: XPost[];
+  typeCounts: Record<string, number>;
+  topType: string | null;
+  cachedAt: string;
 };
 
 function ProbabilityBar({
@@ -64,6 +84,9 @@ export default function VideoTypePage() {
   const [data, setData] = useState<VideoTypePrediction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [xSignals, setXSignals] = useState<XSignalsData | null>(null);
+  const [xLoading, setXLoading] = useState(true);
+  const [xError, setXError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -79,7 +102,24 @@ export default function VideoTypePage() {
       }
     }
 
+    async function loadXSignals() {
+      try {
+        const res = await fetch("/api/mrbeast-x-posts");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error ?? "Failed to load X signals");
+        }
+        const json = await res.json();
+        setXSignals(json);
+      } catch (err) {
+        setXError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setXLoading(false);
+      }
+    }
+
     loadData();
+    loadXSignals();
   }, []);
 
   const top = data?.types[0];
@@ -288,6 +328,105 @@ export default function VideoTypePage() {
 
           </div>
         )}
+
+        {/* 🔴 Live X Signals — loads independently */}
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+            </span>
+            <h2 className="text-lg font-bold text-gray-900">Live X Signals</h2>
+            <span className="text-xs text-gray-400">from @MrBeast</span>
+          </div>
+
+          {xLoading && (
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 flex items-center gap-3 text-gray-400 text-sm">
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400" />
+              Fetching latest X posts…
+            </div>
+          )}
+
+          {!xLoading && xError && (
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center text-gray-400 text-sm">
+              <p className="font-semibold text-gray-500 mb-1">X signals unavailable</p>
+              <p>{xError}</p>
+            </div>
+          )}
+
+          {!xLoading && xSignals && (
+            <div className="space-y-4">
+
+              {/* Summary bar */}
+              {xSignals.topType && (
+                <div className="bg-gray-900 text-white rounded-2xl p-5 flex items-center gap-4">
+                  <span className="text-3xl">𝕏</span>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">
+                      Strongest X Signal
+                    </p>
+                    <p className="text-xl font-bold">
+                      {xSignals.topType}
+                      {Object.keys(xSignals.typeCounts).length > 0 && (
+                        <span className="ml-2 text-sm font-normal text-gray-400">
+                          ({xSignals.typeCounts[xSignals.topType]} mention{xSignals.typeCounts[xSignals.topType] !== 1 ? "s" : ""} across {xSignals.posts.length} posts)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Post list */}
+              {xSignals.posts.length === 0 ? (
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center text-gray-400 text-sm">
+                  No recent X posts found for @MrBeast.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {xSignals.posts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-sm transition-shadow"
+                    >
+                      <p className="text-gray-800 text-sm leading-relaxed mb-3">
+                        {post.text}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {post.detectedKeywords.map((kw) => (
+                          <span
+                            key={kw}
+                            className="text-xs font-semibold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full"
+                          >
+                            {kw}
+                          </span>
+                        ))}
+                        {post.matchedTypes.map((type) => (
+                          <span
+                            key={type}
+                            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TYPE_BADGE_COLORS[type] ?? "bg-gray-100 text-gray-600"}`}
+                          >
+                            {type}
+                          </span>
+                        ))}
+                        {post.detectedKeywords.length === 0 && (
+                          <span className="text-xs text-gray-400">No keywords detected</span>
+                        )}
+                        <span className="ml-auto text-xs text-gray-400">
+                          {new Date(post.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs text-gray-400 text-right">
+                Cached at {new Date(xSignals.cachedAt).toLocaleTimeString()} · refreshes every hour
+              </p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
