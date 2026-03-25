@@ -21,6 +21,8 @@ export interface MarketConfig {
   dataFile: string;
   imageUrl?: string;
   emoji?: string;
+  /** Optional custom path for the market page. Defaults to /markets/{id}. */
+  path?: string;
 }
 
 /**
@@ -74,6 +76,7 @@ export const MARKETS: MarketConfig[] = [
     imageUrl:
       "https://github.com/user-attachments/assets/e2ad1291-8065-4357-911a-ba0a41ea5668",
     emoji: "🎬",
+    path: "/mrbeast",
   },
   {
     id: "trump",
