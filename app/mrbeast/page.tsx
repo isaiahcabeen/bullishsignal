@@ -100,7 +100,7 @@ export default function MrBeastHome() {
             <nav className="flex gap-6 items-center">
               <Link
                 href="/mrbeast/video-type"
-                className="text-gray-700 font-medium hover:text-blue-600 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:border-blue-500 hover:text-blue-600 transition-all"
               >
                 Video Type
               </Link>
