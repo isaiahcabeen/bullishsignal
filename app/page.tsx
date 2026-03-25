@@ -172,7 +172,7 @@ function MarketCard({
 
   return (
     <div
-      onClick={() => router.push(`/markets/${market.id}`)}
+      onClick={() => router.push(market.path ?? `/markets/${market.id}`)}
       className="cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex min-h-[180px]"
     >
       {/* Left Image */}
