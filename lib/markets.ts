@@ -49,7 +49,7 @@ export function resolveWordLabel(
 export const MARKETS: MarketConfig[] = [
   {
     id: "mrbeast",
-    title: "What will MrBeast say in his next YouTube video?",
+    title: "MrBeast Mention Assistant",
     description:
       "Track words MrBeast uses across his YouTube videos and trade on Kalshi prediction markets.",
     words: [
