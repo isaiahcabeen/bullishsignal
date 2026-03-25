@@ -271,7 +271,8 @@ function calculateConfidence(
 export function calculateProbabilities(
   videos: Video[],
   targetType?: string,
-  config: Config = DEFAULT_CONFIG
+  config: Config = DEFAULT_CONFIG,
+  words: string[] = WORDS
 ): Record<string, WordPrediction> {
 
   const now = Date.now();
@@ -283,7 +284,7 @@ export function calculateProbabilities(
 
   const predictions: Record<string, WordPrediction> = {};
 
-  for (const word of WORDS) {
+  for (const word of words) {
 
     let weightedYes = 0;
     let totalWeight = 0;
