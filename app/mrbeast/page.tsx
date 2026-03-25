@@ -84,7 +84,7 @@ export default function MrBeastHome() {
               </Link>
 
               <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-                MrBeast Trading Assistant
+                MrBeast Mention Assistant
               </h1>
             </div>
 
