@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BULLISH_SIGNALS_LOGO_URL } from "@/lib/constants";
+import { MARKETS } from "@/lib/markets";
 
 type KalshiPrice = {
   word: string;
@@ -25,11 +26,6 @@ type MarketInfo = {
   word: string;
   price: number;
 } | null;
-
-type Assistant = {
-  title: string;
-  route: string;
-};
 
 type CountdownState = {
   days: number;
@@ -54,11 +50,15 @@ function computeCountdown(targetMs: number): CountdownState {
   return { days, hours, minutes, seconds };
 }
 
-export default function Home() {
-  const router = useRouter();
+type LiveMarketState = {
+  marketInfo: MarketInfo;
+  marketPhase: MarketPhase;
+  countdownTarget: number | null;
+  countdown: CountdownState;
+  lastUpdated: string | null;
+};
 
-  const [search, setSearch] = useState("");
-  const [imgError, setImgError] = useState(false);
+function useLiveMarket(marketId: string): LiveMarketState {
   const [marketInfo, setMarketInfo] = useState<MarketInfo>(null);
   const [marketPhase, setMarketPhase] = useState<MarketPhase>("loading");
   const [countdownTarget, setCountdownTarget] = useState<number | null>(null);
@@ -68,134 +68,217 @@ export default function Home() {
     minutes: 0,
     seconds: 0,
   });
-  const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const assistants: Assistant[] = [
-    {
-      title: "What will MrBeast say in his next YouTube video?",
-      route: "/mrbeast",
-    },
-  ];
-
-  const filteredAssistants = assistants.filter((assistant) =>
-    assistant.title.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // Fetch market data and derive phase + countdown target from real Kalshi data
-  const fetchMarket = async () => {
-    try {
-      const res = await fetch("/api/kalshi");
-      const data = await res.json();
-
-      if (res.ok && Array.isArray(data.prices) && data.prices.length > 0) {
-        const first: KalshiPrice = data.prices[0];
-        const word: unknown = first.word;
-        const price: unknown = first.price;
-
-        if (
-          typeof word === "string" &&
-          typeof price === "number" &&
-          price >= 0 &&
-          price <= 1
-        ) {
-          setMarketInfo({ word, price });
-          setLastUpdated(
-            new Date().toLocaleTimeString("en-US", {
-              timeZone: "America/Chicago",
-            })
-          );
-        }
-      } else {
-        setMarketInfo(null);
-      }
-
-      // Determine market phase from metadata
-      const metadata: MarketMetadata[] = data.marketMetadata ?? [];
-      derivePhaseFromMetadata(metadata, data.prices ?? []);
-    } catch (err) {
-      console.error("Failed to fetch market data", err);
-      setMarketPhase("no-market");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  function derivePhaseFromMetadata(
-    metadata: MarketMetadata[],
-    prices: KalshiPrice[]
-  ) {
-    // Any open market with live prices → live
-    const openMarket = metadata.find((m) => m.status === "open");
-    if (openMarket && prices.length > 0) {
-      setMarketPhase("live");
-      // Show countdown to close if we have a close_time
-      if (openMarket.close_time) {
-        setCountdownTarget(new Date(openMarket.close_time).getTime());
-      } else {
-        setCountdownTarget(null);
-      }
-      return;
-    }
-
-    // Open market exists but no prices yet (pre-open window) → opening-soon
-    if (openMarket) {
-      setMarketPhase("opening-soon");
-      if (openMarket.open_time) {
-        setCountdownTarget(new Date(openMarket.open_time).getTime());
-      } else {
-        setCountdownTarget(null);
-      }
-      return;
-    }
-
-    // Closed market (awaiting resolution) → closed
-    const closedMarket = metadata.find((m) => m.status === "closed");
-    if (closedMarket) {
-      setMarketPhase("closed");
-      setCountdownTarget(null);
-      return;
-    }
-
-    // No relevant markets found
-    if (metadata.length === 0 && prices.length === 0) {
-      setMarketPhase("no-market");
-      setCountdownTarget(null);
-      return;
-    }
-
-    // Fallback
-    setMarketPhase("no-market");
-    setCountdownTarget(null);
-  }
-
-  // Initial fetch and auto-refresh every 15 seconds
   useEffect(() => {
+    function derivePhase(metadata: MarketMetadata[], prices: KalshiPrice[]) {
+      const openMarket = metadata.find((m) => m.status === "open");
+      if (openMarket && prices.length > 0) {
+        setMarketPhase("live");
+        setCountdownTarget(
+          openMarket.close_time
+            ? new Date(openMarket.close_time).getTime()
+            : null
+        );
+        return;
+      }
+      if (openMarket) {
+        setMarketPhase("opening-soon");
+        setCountdownTarget(
+          openMarket.open_time
+            ? new Date(openMarket.open_time).getTime()
+            : null
+        );
+        return;
+      }
+      if (metadata.find((m) => m.status === "closed")) {
+        setMarketPhase("closed");
+        setCountdownTarget(null);
+        return;
+      }
+      setMarketPhase("no-market");
+      setCountdownTarget(null);
+    }
+
+    async function fetchMarket() {
+      try {
+        const res = await fetch(`/api/markets/${marketId}/kalshi`);
+        const data = await res.json();
+
+        if (res.ok && Array.isArray(data.prices) && data.prices.length > 0) {
+          const first: KalshiPrice = data.prices[0];
+          if (
+            typeof first.word === "string" &&
+            typeof first.price === "number" &&
+            first.price >= 0 &&
+            first.price <= 1
+          ) {
+            setMarketInfo({ word: first.word, price: first.price });
+            setLastUpdated(
+              new Date().toLocaleTimeString("en-US", {
+                timeZone: "America/Chicago",
+              })
+            );
+          }
+        } else {
+          setMarketInfo(null);
+        }
+
+        derivePhase(data.marketMetadata ?? [], data.prices ?? []);
+      } catch {
+        setMarketPhase("no-market");
+      }
+    }
+
     fetchMarket();
     const interval = setInterval(fetchMarket, 15000);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [marketId]);
 
-  // Countdown timer ticks every second toward the target time
   useEffect(() => {
     if (countdownTarget === null) return;
-
     const tick = () => setCountdown(computeCountdown(countdownTarget));
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [countdownTarget]);
 
-  const phaseLabel = loading
-    ? "Loading market data…"
-    : marketPhase === "live"
-    ? "Live Now · Market Closes In"
-    : marketPhase === "opening-soon"
-    ? "Market Opens In"
-    : marketPhase === "closed"
-    ? "Market Closed"
-    : "No Upcoming Market";
+  return { marketInfo, marketPhase, countdownTarget, countdown, lastUpdated };
+}
+
+function MarketCard({
+  market,
+  imgError,
+  onImgError,
+}: {
+  market: (typeof MARKETS)[number];
+  imgError: boolean;
+  onImgError: () => void;
+}) {
+  const router = useRouter();
+  const { marketInfo, marketPhase, countdownTarget, countdown, lastUpdated } =
+    useLiveMarket(market.id);
+
+  const phaseLabel =
+    marketPhase === "loading"
+      ? "Loading market data…"
+      : marketPhase === "live"
+      ? "Live Now · Market Closes In"
+      : marketPhase === "opening-soon"
+      ? "Market Opens In"
+      : marketPhase === "closed"
+      ? "Market Closed"
+      : "No Upcoming Market";
+
+  return (
+    <div
+      onClick={() => router.push(`/markets/${market.id}`)}
+      className="cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex min-h-[180px]"
+    >
+      {/* Left Image */}
+      <div className="w-44 md:w-52 flex-shrink-0 bg-gray-800 relative overflow-hidden flex items-center justify-center">
+        {market.imageUrl && !imgError ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={market.imageUrl}
+            alt={market.title}
+            width={208}
+            height={180}
+            className="object-cover w-full h-full"
+            onError={onImgError}
+          />
+        ) : (
+          <span className="text-4xl select-none">{market.emoji}</span>
+        )}
+      </div>
+
+      {/* Right Details */}
+      <div className="flex-1 p-5 flex flex-col justify-between">
+        <div>
+          <h2 className="text-base md:text-lg font-bold text-gray-900 leading-snug mb-1">
+            {market.title}
+          </h2>
+          <p className="text-xs text-gray-400 mb-3">Kalshi Prediction Market</p>
+        </div>
+
+        {/* Status + Countdown */}
+        <div className="mb-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+            {phaseLabel}
+          </p>
+
+          {marketPhase === "live" ? (
+            <span className="inline-block bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-sm">
+              🟢 Live Now
+            </span>
+          ) : marketPhase === "closed" ? (
+            <span className="inline-block bg-gray-100 text-gray-600 font-semibold px-3 py-1 rounded-full text-sm">
+              🔒 Market Closed
+            </span>
+          ) : marketPhase === "no-market" ? (
+            <span className="inline-block bg-sky-50 text-sky-600 font-semibold px-3 py-1 rounded-full text-sm">
+              No upcoming market
+            </span>
+          ) : countdownTarget !== null ? (
+            <div className="flex gap-2">
+              {[
+                { label: "D", value: countdown.days },
+                { label: "H", value: countdown.hours },
+                { label: "M", value: countdown.minutes },
+                { label: "S", value: countdown.seconds },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="bg-slate-100 rounded-lg px-2 py-1 min-w-[40px] text-center"
+                >
+                  <div className="text-base font-bold text-slate-900 leading-tight">
+                    {String(value).padStart(2, "0")}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-medium">
+                    {label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span className="inline-block bg-sky-50 text-sky-600 font-semibold px-3 py-1 rounded-full text-sm">
+              No upcoming market
+            </span>
+          )}
+        </div>
+
+        {/* Market Info */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          <div className="flex items-center gap-1">
+            <span className="text-gray-400">Word:</span>
+            <span className="font-semibold text-gray-800">
+              {marketInfo ? `"${marketInfo.word}"` : "N/A"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-green-500 font-semibold">
+              {marketInfo
+                ? `Yes ${(marketInfo.price * 100).toFixed(0)}¢`
+                : "N/A"}
+            </span>
+          </div>
+        </div>
+
+        {lastUpdated && marketPhase === "live" && (
+          <p className="text-xs text-gray-400 mt-2">Updated: {lastUpdated}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function Home() {
+  const [search, setSearch] = useState("");
+  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
+
+  const filteredMarkets = MARKETS.filter((m) =>
+    m.title.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-white">
@@ -243,8 +326,7 @@ export default function Home() {
             Trading Assistants
           </h1>
           <p className="text-white text-lg mt-3">
-            Utilize these trading assistants to optimize your strategy and turn a
-            profit!
+            Utilize these trading assistants to optimize your strategy and turn a profit!
           </p>
         </div>
 
@@ -262,117 +344,17 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="px-4 py-6 flex flex-col gap-6 max-w-2xl">
-        {filteredAssistants.map((assistant) => (
-          <div
-            key={assistant.route}
-            onClick={() => router.push(assistant.route)}
-            className="cursor-pointer bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex min-h-[180px]"
-          >
-            {/* Left Image */}
-            <div className="w-44 md:w-52 flex-shrink-0 bg-gray-800 relative overflow-hidden flex items-center justify-center">
-              {!imgError ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src="https://github.com/user-attachments/assets/e2ad1291-8065-4357-911a-ba0a41ea5668"
-                  alt="MrBeast"
-                  width={208}
-                  height={180}
-                  className="object-cover w-full h-full"
-                  onError={() => setImgError(true)}
-                />
-              ) : (
-                <span className="text-4xl font-black text-yellow-700 select-none">
-                  MB
-                </span>
-              )}
-            </div>
-
-            {/* Right Details */}
-            <div className="flex-1 p-5 flex flex-col justify-between">
-              <div>
-                <h2 className="text-base md:text-lg font-bold text-gray-900 leading-snug mb-1">
-                  {assistant.title}
-                </h2>
-                <p className="text-xs text-gray-400 mb-3">
-                  Kalshi Prediction Market
-                </p>
-              </div>
-
-              {/* Status + Countdown */}
-              <div className="mb-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                  {phaseLabel}
-                </p>
-
-                {marketPhase === "live" ? (
-                  <span className="inline-block bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-sm">
-                    🟢 Live Now
-                  </span>
-                ) : marketPhase === "closed" ? (
-                  <span className="inline-block bg-gray-100 text-gray-600 font-semibold px-3 py-1 rounded-full text-sm">
-                    🔒 Market Closed
-                  </span>
-                ) : marketPhase === "no-market" ? (
-                  <span className="inline-block bg-sky-50 text-sky-600 font-semibold px-3 py-1 rounded-full text-sm">
-                    No upcoming market
-                  </span>
-                ) : countdownTarget !== null ? (
-                  <div className="flex gap-2">
-                    {[
-                      { label: "D", value: countdown.days },
-                      { label: "H", value: countdown.hours },
-                      { label: "M", value: countdown.minutes },
-                      { label: "S", value: countdown.seconds },
-                    ].map(({ label, value }) => (
-                      <div
-                        key={label}
-                        className="bg-slate-100 rounded-lg px-2 py-1 min-w-[40px] text-center"
-                      >
-                        <div className="text-base font-bold text-slate-900 leading-tight">
-                          {String(value).padStart(2, "0")}
-                        </div>
-                        <div className="text-[10px] text-slate-500 font-medium">
-                          {label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="inline-block bg-sky-50 text-sky-600 font-semibold px-3 py-1 rounded-full text-sm">
-                    No upcoming market
-                  </span>
-                )}
-              </div>
-
-              {/* Market Info */}
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-400">Word:</span>
-                  <span className="font-semibold text-gray-800">
-                    {marketInfo ? `"${marketInfo.word}"` : "N/A"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <span className="text-green-500 font-semibold">
-                    {marketInfo
-                      ? `Yes ${(marketInfo.price * 100).toFixed(0)}¢`
-                      : "N/A"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Last updated */}
-              {lastUpdated && marketPhase === "live" && (
-                <p className="text-xs text-gray-400 mt-2">
-                  Updated: {lastUpdated}
-                </p>
-              )}
-            </div>
-          </div>
+        {filteredMarkets.map((market) => (
+          <MarketCard
+            key={market.id}
+            market={market}
+            imgError={!!imgErrors[market.id]}
+            onImgError={() =>
+              setImgErrors((prev) => ({ ...prev, [market.id]: true }))
+            }
+          />
         ))}
       </div>
     </div>
   );
 }
-

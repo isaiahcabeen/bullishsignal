@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import { WORDS } from "./words";
+import type { MarketConfig } from "./markets";
+import { wordMatchStrings } from "./markets";
 
 const KALSHI_BASE_URL = process.env.KALSHI_BASE_URL ?? "https://api.elections.kalshi.com";
 const KALSHI_KEY_ID = process.env.KALSHI_API_KEY_ID;
@@ -60,6 +62,34 @@ function generateAuthHeaders(
     "KALSHI-ACCESS-SIGNATURE": signature,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Generic helpers
+// ---------------------------------------------------------------------------
+
+function extractWordFromMarketGeneric(
+  market: KalshiMarket,
+  wordEntries: MarketConfig["words"]
+): string | null {
+  const searchText = `${market.title} ${market.subtitle ?? ""}`.toLowerCase();
+
+  for (const entry of wordEntries) {
+    if (wordMatchStrings(entry).some((s) => searchText.includes(s.toLowerCase()))) {
+      return entry.label;
+    }
+  }
+
+  return null;
+}
+
+function isMarketForConfig(m: KalshiMarket, keywords: string[]): boolean {
+  const text = `${m.ticker} ${m.title} ${m.subtitle ?? ""}`.toLowerCase();
+  return keywords.some((kw) => text.includes(kw.toLowerCase()));
+}
+
+// ---------------------------------------------------------------------------
+// Legacy helpers (MrBeast-specific — kept for the existing /api/kalshi routes)
+// ---------------------------------------------------------------------------
 
 function extractWordFromMarket(market: KalshiMarket): string | null {
   const searchText = `${market.title} ${market.subtitle ?? ""}`.toLowerCase();
@@ -130,6 +160,81 @@ function isMrbeastMarket(m: KalshiMarket): boolean {
   const text = `${m.ticker} ${m.title} ${m.subtitle ?? ""}`.toLowerCase();
   return text.includes("mrbeast") || text.includes("mr beast");
 }
+
+// ---------------------------------------------------------------------------
+// Generic market-aware API (used by /api/markets/[marketId]/*)
+// ---------------------------------------------------------------------------
+
+export async function fetchKalshiWordPricesForMarket(
+  market: MarketConfig
+): Promise<KalshiMarketPrice[]> {
+  if (!credentialsPresent()) return [];
+
+  const markets = await fetchMarkets(["open"]);
+  const filtered = markets.filter((m) =>
+    isMarketForConfig(m, market.kalshiKeywords)
+  );
+
+  const wordPriceMap = new Map<string, KalshiMarketPrice>();
+
+  for (const m of filtered) {
+    const word = extractWordFromMarketGeneric(m, market.words);
+    if (!word) continue;
+
+    const price = extractPrice(m);
+
+    if (!wordPriceMap.has(word)) {
+      wordPriceMap.set(word, {
+        word,
+        ticker: m.ticker,
+        title: m.title,
+        price,
+      });
+    }
+  }
+
+  return Array.from(wordPriceMap.values());
+}
+
+export async function fetchKalshiMarketMetadataForMarket(
+  market: MarketConfig
+): Promise<KalshiMarketMetadata[]> {
+  if (!credentialsPresent()) return [];
+
+  const markets = await fetchMarkets(["open", "closed"]);
+  return markets
+    .filter((m) => isMarketForConfig(m, market.kalshiKeywords))
+    .map((m) => ({
+      ticker: m.ticker,
+      title: m.title,
+      status: m.status ?? "unknown",
+      open_time: m.open_time,
+      close_time: m.close_time,
+      result: m.result,
+    }));
+}
+
+export async function fetchKalshiMarketResultsForMarket(
+  market: MarketConfig
+): Promise<KalshiMarketMetadata[]> {
+  if (!credentialsPresent()) return [];
+
+  const markets = await fetchMarkets(["settled"]);
+  return markets
+    .filter((m) => isMarketForConfig(m, market.kalshiKeywords))
+    .map((m) => ({
+      ticker: m.ticker,
+      title: m.title,
+      status: m.status ?? "settled",
+      open_time: m.open_time,
+      close_time: m.close_time,
+      result: m.result,
+    }));
+}
+
+// ---------------------------------------------------------------------------
+// Legacy MrBeast-specific exports (keep existing /api/kalshi routes working)
+// ---------------------------------------------------------------------------
 
 export async function fetchKalshiWordPrices(): Promise<KalshiMarketPrice[]> {
   if (!credentialsPresent()) return [];
