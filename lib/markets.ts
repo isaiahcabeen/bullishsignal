@@ -114,6 +114,8 @@ export const MARKETS: MarketConfig[] = [
     ],
     kalshiKeywords: ["trump"],
     dataFile: "trump.json",
+    imageUrl:
+      "https://github.com/user-attachments/assets/3f41bf79-5591-4be2-bfb3-cc33989c7232",
     emoji: "🇺🇸",
   },
 ];
