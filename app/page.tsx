@@ -343,7 +343,7 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <div className="px-4 py-6 flex flex-col gap-6 max-w-2xl">
+      <div className="px-4 py-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
         {filteredMarkets.map((market) => (
           <MarketCard
             key={market.id}
