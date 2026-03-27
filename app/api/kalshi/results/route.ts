@@ -1,32 +1,48 @@
 import { NextResponse } from "next/server";
-import { fetchKalshiMarketResults } from "@/lib/kalshi";
+import { getMarketById } from "@/lib/markets";
+import { fetchKalshiMarketResultsForMarket } from "@/lib/kalshi";
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-let cache: {
-  data: Awaited<ReturnType<typeof fetchKalshiMarketResults>>;
-  timestamp: number;
-} | null = null;
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes (results change less frequently)
+const cacheStore = new Map<
+  string,
+  {
+    data: Awaited<ReturnType<typeof fetchKalshiMarketResultsForMarket>>;
+    timestamp: number;
+  }
+>();
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const marketId = searchParams.get("marketId") ?? "mrbeast";
+
+  const market = getMarketById(marketId);
+  if (!market) {
+    return NextResponse.json(
+      { error: `Market "${marketId}" not found` },
+      { status: 404 }
+    );
+  }
+
   try {
-    if (cache && Date.now() - cache.timestamp < CACHE_TTL) {
+    const cached = cacheStore.get(marketId);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return NextResponse.json({
-        results: cache.data,
-        lastUpdated: new Date(cache.timestamp).toISOString(),
+        results: cached.data,
+        lastUpdated: new Date(cached.timestamp).toISOString(),
         cached: true,
       });
     }
 
-    const results = await fetchKalshiMarketResults();
-    cache = { data: results, timestamp: Date.now() };
+    const results = await fetchKalshiMarketResultsForMarket(market);
+    cacheStore.set(marketId, { data: results, timestamp: Date.now() });
 
     return NextResponse.json({
       results,
-      lastUpdated: new Date(cache.timestamp).toISOString(),
+      lastUpdated: new Date().toISOString(),
       cached: false,
     });
   } catch (error) {
-    cache = null;
+    cacheStore.delete(marketId);
     console.error("GET /api/kalshi/results error:", error);
     return NextResponse.json(
       {
