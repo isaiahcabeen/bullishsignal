@@ -116,6 +116,8 @@ export const MARKETS: MarketConfig[] = [
     dataFile: "trump.json",
     imageUrl:
       "https://images.unsplash.com/photo-1580128660010-fd027e1e587a?q=80&w=1064&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    emoji: "🇺🇸",
+    path: "/trump",
   },
 ];
 
