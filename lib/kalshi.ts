@@ -123,7 +123,7 @@ function credentialsPresent(): boolean {
   return true;
 }
 
-async function fetchMarkets(statuses: string[]): Promise<KalshiMarket[]> {
+export async function fetchMarkets(statuses: string[]): Promise<KalshiMarket[]> {
   const apiPath = "/trade-api/v2/markets";
   const all: KalshiMarket[] = [];
 
