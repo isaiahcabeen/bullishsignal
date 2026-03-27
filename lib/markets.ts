@@ -71,7 +71,7 @@ export const MARKETS: MarketConfig[] = [
       { label: "Subscribe" },
       { label: "Saudi Arabia" },
     ],
-    kalshiKeywords: ["mrbeast", "mr beast"],
+    kalshiKeywords: ["kxmrbeastmention"],
     dataFile: "mrbeast.json",
     imageUrl:
       "https://github.com/user-attachments/assets/e2ad1291-8065-4357-911a-ba0a41ea5668",
